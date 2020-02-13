@@ -5,7 +5,6 @@ import java.util.List;
 import info.nightscout.androidaps.data.DetailedBolusInfo;
 import info.nightscout.androidaps.data.IobTotal;
 import info.nightscout.androidaps.data.MealData;
-import info.nightscout.androidaps.data.NonOverlappingIntervals;
 import info.nightscout.androidaps.data.Profile;
 import info.nightscout.androidaps.db.ExtendedBolus;
 import info.nightscout.androidaps.db.ProfileSwitch;
@@ -26,13 +25,12 @@ public interface TreatmentsInterface {
     IobTotal getLastCalculationTreatments();
     IobTotal getCalculationToTimeTreatments(long time);
     IobTotal getLastCalculationTempBasals();
-    IobTotal getCalculationToTimeTempBasals(long time);
+    IobTotal getCalculationToTimeTempBasals(long time, Profile profile);
 
     MealData getMealData();
 
     List<Treatment> getTreatmentsFromHistory();
     List<Treatment> getTreatments5MinBackFromHistory(long time);
-    List<Treatment> getTreatmentsFromHistoryAfterTimestamp(long timestamp);
     long getLastBolusTime();
 
     // real basals (not faked by extended bolus)
@@ -44,7 +42,7 @@ public interface TreatmentsInterface {
     // basal that can be faked by extended boluses
     boolean isTempBasalInProgress();
     TemporaryBasal getTempBasalFromHistory(long time);
-    NonOverlappingIntervals<TemporaryBasal> getTemporaryBasalsFromHistory();
+    Intervals<TemporaryBasal> getTemporaryBasalsFromHistory();
 
     boolean isInHistoryExtendedBoluslInProgress();
     ExtendedBolus getExtendedBolusFromHistory(long time);

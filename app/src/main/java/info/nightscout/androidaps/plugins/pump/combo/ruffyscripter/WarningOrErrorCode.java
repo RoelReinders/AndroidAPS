@@ -1,6 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.combo.ruffyscripter;
 
-import androidx.annotation.Nullable;
+import android.support.annotation.Nullable;
 
 public class WarningOrErrorCode {
     @Nullable

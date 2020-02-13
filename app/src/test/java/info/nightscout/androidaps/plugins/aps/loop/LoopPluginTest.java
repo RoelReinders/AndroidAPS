@@ -2,6 +2,8 @@ package info.nightscout.androidaps.plugins.aps.loop;
 
 import android.content.Context;
 
+import com.squareup.otto.Bus;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,6 +31,7 @@ public class LoopPluginTest {
 
     VirtualPumpPlugin virtualPumpPlugin;
     LoopPlugin loopPlugin;
+    MockedBus bus;
 
     @Test
     public void testPluginInterface() {
@@ -88,10 +91,17 @@ public class LoopPluginTest {
         AAPSMocker.mockSP();
         AAPSMocker.mockStrings();
 
+        bus = new MockedBus();
+        when(MainApp.bus()).thenReturn(bus);
+
         loopPlugin = LoopPlugin.getPlugin();
         virtualPumpPlugin = VirtualPumpPlugin.getPlugin();
 
         when(ConfigBuilderPlugin.getPlugin().getActivePump()).thenReturn(virtualPumpPlugin);
     }
+
+    class MockedBus extends Bus {
+    }
+
 
 }

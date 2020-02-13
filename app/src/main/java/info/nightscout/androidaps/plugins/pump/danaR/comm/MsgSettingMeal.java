@@ -7,7 +7,6 @@ import info.nightscout.androidaps.MainApp;
 import info.nightscout.androidaps.R;
 import info.nightscout.androidaps.interfaces.PluginType;
 import info.nightscout.androidaps.logging.L;
-import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.general.overview.events.EventDismissNotification;
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification;
 import info.nightscout.androidaps.plugins.general.overview.notifications.Notification;
@@ -52,16 +51,16 @@ public class MsgSettingMeal extends MessageBase {
 
         if (pump.basalStep != 0.01d) {
             Notification notification = new Notification(Notification.WRONGBASALSTEP, MainApp.gs(R.string.danar_setbasalstep001), Notification.URGENT);
-            RxBus.INSTANCE.send(new EventNewNotification(notification));
+            MainApp.bus().post(new EventNewNotification(notification));
         } else {
-            RxBus.INSTANCE.send(new EventDismissNotification(Notification.WRONGBASALSTEP));
+            MainApp.bus().post(new EventDismissNotification(Notification.WRONGBASALSTEP));
         }
 
         if (pump.isConfigUD) {
             Notification notification = new Notification(Notification.UD_MODE_ENABLED, MainApp.gs(R.string.danar_switchtouhmode), Notification.URGENT);
-            RxBus.INSTANCE.send(new EventNewNotification(notification));
+            MainApp.bus().post(new EventNewNotification(notification));
         } else {
-            RxBus.INSTANCE.send(new EventDismissNotification(Notification.UD_MODE_ENABLED));
+            MainApp.bus().post(new EventDismissNotification(Notification.UD_MODE_ENABLED));
         }
     }
 

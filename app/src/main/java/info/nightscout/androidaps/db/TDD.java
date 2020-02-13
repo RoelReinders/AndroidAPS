@@ -6,8 +6,9 @@ import com.j256.ormlite.table.DatabaseTable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
+
 import info.nightscout.androidaps.logging.L;
-import info.nightscout.androidaps.plugins.pump.common.utils.DateTimeUtil;
 
 /**
  * Created by mike on 20.09.2017.
@@ -43,17 +44,5 @@ public class TDD {
         this.bolus = bolus;
         this.basal = basal;
         this.total = total;
-    }
-
-
-    @Override
-    public String toString() {
-        return "TDD [" +
-                "date=" + date +
-                "date(str)=" + DateTimeUtil.toStringFromTimeInMillis(date) +
-                ", bolus=" + bolus +
-                ", basal=" + basal +
-                ", total=" + total +
-                ']';
     }
 }

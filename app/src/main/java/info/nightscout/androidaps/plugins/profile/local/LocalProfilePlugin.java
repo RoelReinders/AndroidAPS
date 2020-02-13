@@ -1,6 +1,6 @@
 package info.nightscout.androidaps.plugins.profile.local;
 
-import androidx.annotation.NonNull;
+import android.support.annotation.NonNull;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -18,7 +18,6 @@ import info.nightscout.androidaps.interfaces.PluginDescription;
 import info.nightscout.androidaps.interfaces.PluginType;
 import info.nightscout.androidaps.interfaces.ProfileInterface;
 import info.nightscout.androidaps.logging.L;
-import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.utils.DecimalFormatter;
 import info.nightscout.androidaps.utils.SP;
 
@@ -84,7 +83,7 @@ public class LocalProfilePlugin extends PluginBase implements ProfileInterface {
         edited = false;
         if (L.isEnabled(L.PROFILE))
             log.debug("Storing settings: " + getRawProfile().getData().toString());
-        RxBus.INSTANCE.send(new EventProfileStoreChanged());
+        MainApp.bus().post(new EventProfileStoreChanged());
     }
 
     public synchronized void loadSettings() {

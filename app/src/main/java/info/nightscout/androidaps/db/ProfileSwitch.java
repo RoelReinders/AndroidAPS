@@ -1,9 +1,7 @@
 package info.nightscout.androidaps.db;
 
 import android.graphics.Color;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import android.support.annotation.Nullable;
 
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -20,13 +18,11 @@ import info.nightscout.androidaps.R;
 import info.nightscout.androidaps.data.Profile;
 import info.nightscout.androidaps.interfaces.Interval;
 import info.nightscout.androidaps.logging.L;
-import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification;
 import info.nightscout.androidaps.plugins.general.overview.graphExtensions.DataPointWithLabelInterface;
 import info.nightscout.androidaps.plugins.general.overview.graphExtensions.PointsWithLabelGraphSeries;
 import info.nightscout.androidaps.plugins.general.overview.notifications.Notification;
 import info.nightscout.androidaps.plugins.profile.local.LocalProfilePlugin;
-import info.nightscout.androidaps.plugins.treatments.TreatmentsPlugin;
 import info.nightscout.androidaps.utils.DateUtil;
 import info.nightscout.androidaps.utils.DecimalFormatter;
 import info.nightscout.androidaps.utils.T;
@@ -82,12 +78,12 @@ public class ProfileSwitch implements Interval, DataPointWithLabelInterface {
         return this;
     }
 
-    public ProfileSwitch source(int source) {
+   public ProfileSwitch source(int source) {
         this.source = source;
         return this;
     }
 
-    public ProfileSwitch duration(int duration) {
+   public ProfileSwitch duration(int duration) {
         this.durationInMinutes = duration;
         return this;
     }
@@ -111,7 +107,7 @@ public class ProfileSwitch implements Interval, DataPointWithLabelInterface {
      */
     public String getCustomizedName() {
         String name = profileName;
-        if (LocalProfilePlugin.LOCAL_PROFILE.equals(name)) {
+        if(LocalProfilePlugin.LOCAL_PROFILE.equals(name)){
             name = DecimalFormatter.to2Decimal(getProfileObject().percentageBasalSum()) + "U ";
         }
         if (isCPP) {
@@ -160,7 +156,7 @@ public class ProfileSwitch implements Interval, DataPointWithLabelInterface {
 
     // -------- Interval interface ---------
 
-    private Long cuttedEnd = null;
+    Long cuttedEnd = null;
 
     public long durationInMsec() {
         return durationInMinutes * 60 * 1000L;
@@ -216,17 +212,16 @@ public class ProfileSwitch implements Interval, DataPointWithLabelInterface {
 
     @Override
     public boolean isValid() {
+
         boolean isValid = getProfileObject() != null && getProfileObject().isValid(DateUtil.dateAndTimeString(date));
-        ProfileSwitch active = TreatmentsPlugin.getPlugin().getProfileSwitchFromHistory(DateUtil.now());
-        long activeProfileSwitchDate = active != null ? active.date : -1L;
-        if (!isValid && date == activeProfileSwitchDate)
+        if (!isValid)
             createNotificationInvalidProfile(DateUtil.dateAndTimeString(date));
         return isValid;
     }
 
-    private void createNotificationInvalidProfile(String detail) {
+    public void createNotificationInvalidProfile(String detail) {
         Notification notification = new Notification(Notification.ZERO_VALUE_IN_PROFILE, String.format(MainApp.gs(R.string.zerovalueinprofile), detail), Notification.LOW, 5);
-        RxBus.INSTANCE.send(new EventNewNotification(notification));
+        MainApp.bus().post(new EventNewNotification(notification));
     }
 
     public static boolean isEvent5minBack(List<ProfileSwitch> list, long time, boolean zeroDurationOnly) {
@@ -295,7 +290,6 @@ public class ProfileSwitch implements Interval, DataPointWithLabelInterface {
         return Color.CYAN;
     }
 
-    @NonNull
     public String toString() {
         return "ProfileSwitch{" +
                 "date=" + date +

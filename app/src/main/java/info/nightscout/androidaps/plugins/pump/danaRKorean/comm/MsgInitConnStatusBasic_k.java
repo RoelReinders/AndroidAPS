@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import info.nightscout.androidaps.MainApp;
 import info.nightscout.androidaps.R;
 import info.nightscout.androidaps.logging.L;
-import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.general.overview.events.EventDismissNotification;
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification;
 import info.nightscout.androidaps.plugins.general.overview.notifications.Notification;
@@ -43,16 +42,16 @@ public class MsgInitConnStatusBasic_k extends MessageBase {
 
         if (pump.isEasyModeEnabled) {
             Notification notification = new Notification(Notification.EASYMODE_ENABLED, MainApp.gs(R.string.danar_disableeasymode), Notification.URGENT);
-            RxBus.INSTANCE.send(new EventNewNotification(notification));
+            MainApp.bus().post(new EventNewNotification(notification));
         } else {
-            RxBus.INSTANCE.send(new EventDismissNotification(Notification.EASYMODE_ENABLED));
+            MainApp.bus().post(new EventDismissNotification(Notification.EASYMODE_ENABLED));
         }
 
         if (!DanaRPump.getInstance().isPasswordOK()) {
             Notification notification = new Notification(Notification.WRONG_PUMP_PASSWORD, MainApp.gs(R.string.wrongpumppassword), Notification.URGENT);
-            RxBus.INSTANCE.send(new EventNewNotification(notification));
+            MainApp.bus().post(new EventNewNotification(notification));
         } else {
-            RxBus.INSTANCE.send(new EventDismissNotification(Notification.WRONG_PUMP_PASSWORD));
+            MainApp.bus().post(new EventDismissNotification(Notification.WRONG_PUMP_PASSWORD));
         }
     }
 }

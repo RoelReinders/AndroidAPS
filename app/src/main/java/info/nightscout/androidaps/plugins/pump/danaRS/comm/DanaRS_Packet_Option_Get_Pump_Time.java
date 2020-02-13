@@ -59,11 +59,6 @@ public class DanaRS_Packet_Option_Get_Pump_Time extends DanaRS_Packet {
     }
 
     @Override
-    public void handleMessageNotReceived() {
-        DanaRPump.getInstance().pumpTime = 0;
-    }
-
-    @Override
     public String getFriendlyName() {
         return "OPTION__GET_PUMP_TIME";
     }

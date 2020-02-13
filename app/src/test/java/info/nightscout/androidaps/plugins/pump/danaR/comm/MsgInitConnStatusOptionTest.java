@@ -27,6 +27,7 @@ public class MsgInitConnStatusOptionTest {
         AAPSMocker.mockApplicationContext();
         AAPSMocker.mockSP();
         AAPSMocker.mockL();
+        AAPSMocker.mockBus();
         AAPSMocker.mockConfigBuilder();
         MsgInitConnStatusOption packet = new MsgInitConnStatusOption();
 

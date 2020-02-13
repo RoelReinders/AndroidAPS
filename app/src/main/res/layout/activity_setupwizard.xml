@@ -23,6 +23,7 @@
             app:srcCompat="@drawable/ic_exit_to_app" />
 
         <TextView
+            android:id="@+id/sw_exit"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
@@ -58,6 +59,7 @@
     </ScrollView>
 
     <LinearLayout
+        android:id="@+id/sw_content_controls"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"

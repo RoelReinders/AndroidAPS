@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import info.nightscout.androidaps.MainApp;
 import info.nightscout.androidaps.db.DanaRHistoryRecord;
 import info.nightscout.androidaps.logging.L;
-import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.pump.danaR.events.EventDanaRSyncStatus;
 import info.nightscout.androidaps.utils.DateUtil;
 
@@ -33,6 +32,8 @@ public class MsgHistoryAll extends MessageBase {
         byte paramByte7 = (byte) intFromBuff(bytes, 6, 1);
         byte paramByte8 = (byte) intFromBuff(bytes, 7, 1);
         double value = (double) intFromBuff(bytes, 8, 2);
+
+        EventDanaRSyncStatus ev = new EventDanaRSyncStatus();
 
         DanaRHistoryRecord danaRHistoryRecord = new DanaRHistoryRecord();
 
@@ -144,6 +145,11 @@ public class MsgHistoryAll extends MessageBase {
         }
 
         MainApp.getDbHelper().createOrUpdate(danaRHistoryRecord);
-        RxBus.INSTANCE.send(new EventDanaRSyncStatus(DateUtil.dateAndTimeString(danaRHistoryRecord.recordDate) + " " + messageType));
+
+        ev.message = DateUtil.dateAndTimeString(danaRHistoryRecord.recordDate);
+        ev.message += " " + messageType;
+        MainApp.bus().post(ev);
+
+        return;
     }
 }

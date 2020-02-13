@@ -26,6 +26,7 @@ public class MsgInitConnStatusBolusTest {
         AAPSMocker.mockApplicationContext();
         AAPSMocker.mockSP();
         AAPSMocker.mockL();
+        AAPSMocker.mockBus();
         MsgInitConnStatusBolus packet = new MsgInitConnStatusBolus();
 
         // test message decoding

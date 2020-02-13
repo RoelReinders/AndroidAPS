@@ -1,8 +1,9 @@
 package info.nightscout.androidaps.interaction.utils;
 
 import android.content.Context;
-
-import androidx.annotation.NonNull;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.widget.Toast;
 

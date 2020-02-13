@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import info.nightscout.androidaps.MainApp;
 import info.nightscout.androidaps.R;
+import info.nightscout.androidaps.plugins.iob.iobCobCalculator.GlucoseStatus;
 import info.nightscout.androidaps.data.IobTotal;
 import info.nightscout.androidaps.data.MealData;
 import info.nightscout.androidaps.data.Profile;
@@ -18,21 +19,18 @@ import info.nightscout.androidaps.interfaces.PluginDescription;
 import info.nightscout.androidaps.interfaces.PluginType;
 import info.nightscout.androidaps.interfaces.PumpInterface;
 import info.nightscout.androidaps.logging.L;
-import info.nightscout.androidaps.plugins.aps.loop.APSResult;
-import info.nightscout.androidaps.plugins.aps.loop.ScriptReader;
-import info.nightscout.androidaps.plugins.aps.openAPSMA.events.EventOpenAPSUpdateGui;
-import info.nightscout.androidaps.plugins.aps.openAPSMA.events.EventOpenAPSUpdateResultGui;
-import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.configBuilder.ConfigBuilderPlugin;
 import info.nightscout.androidaps.plugins.configBuilder.ProfileFunctions;
-import info.nightscout.androidaps.plugins.general.nsclient.NSUpload;
 import info.nightscout.androidaps.plugins.iob.iobCobCalculator.AutosensData;
 import info.nightscout.androidaps.plugins.iob.iobCobCalculator.AutosensResult;
-import info.nightscout.androidaps.plugins.iob.iobCobCalculator.GlucoseStatus;
 import info.nightscout.androidaps.plugins.iob.iobCobCalculator.IobCobCalculatorPlugin;
+import info.nightscout.androidaps.plugins.aps.loop.APSResult;
+import info.nightscout.androidaps.plugins.aps.loop.ScriptReader;
+import info.nightscout.androidaps.plugins.general.nsclient.NSUpload;
+import info.nightscout.androidaps.plugins.aps.openAPSMA.events.EventOpenAPSUpdateGui;
+import info.nightscout.androidaps.plugins.aps.openAPSMA.events.EventOpenAPSUpdateResultGui;
 import info.nightscout.androidaps.plugins.treatments.TreatmentsPlugin;
 import info.nightscout.androidaps.utils.DateUtil;
-import info.nightscout.androidaps.utils.FabricPrivacy;
 import info.nightscout.androidaps.utils.HardLimits;
 import info.nightscout.androidaps.utils.Profiler;
 import info.nightscout.androidaps.utils.Round;
@@ -105,21 +103,21 @@ public class OpenAPSSMBPlugin extends PluginBase implements APSInterface, Constr
         PumpInterface pump = ConfigBuilderPlugin.getPlugin().getActivePump();
 
         if (profile == null) {
-            RxBus.INSTANCE.send(new EventOpenAPSUpdateResultGui(MainApp.gs(R.string.noprofileselected)));
+            MainApp.bus().post(new EventOpenAPSUpdateResultGui(MainApp.gs(R.string.noprofileselected)));
             if (L.isEnabled(L.APS))
                 log.debug(MainApp.gs(R.string.noprofileselected));
             return;
         }
 
         if (!isEnabled(PluginType.APS)) {
-            RxBus.INSTANCE.send(new EventOpenAPSUpdateResultGui(MainApp.gs(R.string.openapsma_disabled)));
+            MainApp.bus().post(new EventOpenAPSUpdateResultGui(MainApp.gs(R.string.openapsma_disabled)));
             if (L.isEnabled(L.APS))
                 log.debug(MainApp.gs(R.string.openapsma_disabled));
             return;
         }
 
         if (glucoseStatus == null) {
-            RxBus.INSTANCE.send(new EventOpenAPSUpdateResultGui(MainApp.gs(R.string.openapsma_noglucosedata)));
+            MainApp.bus().post(new EventOpenAPSUpdateResultGui(MainApp.gs(R.string.openapsma_noglucosedata)));
             if (L.isEnabled(L.APS))
                 log.debug(MainApp.gs(R.string.openapsma_noglucosedata));
             return;
@@ -141,7 +139,11 @@ public class OpenAPSSMBPlugin extends PluginBase implements APSInterface, Constr
 
         long start = System.currentTimeMillis();
         long startPart = System.currentTimeMillis();
+        IobTotal[] iobArray = IobCobCalculatorPlugin.getPlugin().calculateIobArrayForSMB(profile);
+        if (L.isEnabled(L.APS))
+            Profiler.log(log, "calculateIobArrayInDia()", startPart);
 
+        startPart = System.currentTimeMillis();
         MealData mealData = TreatmentsPlugin.getPlugin().getMealData();
         if (L.isEnabled(L.APS))
             Profiler.log(log, "getMealData()", startPart);
@@ -179,7 +181,7 @@ public class OpenAPSSMBPlugin extends PluginBase implements APSInterface, Constr
         if (MainApp.getConstraintChecker().isAutosensModeEnabled().value()) {
             AutosensData autosensData = IobCobCalculatorPlugin.getPlugin().getLastAutosensDataSynchronized("OpenAPSPlugin");
             if (autosensData == null) {
-                RxBus.INSTANCE.send(new EventOpenAPSUpdateResultGui(MainApp.gs(R.string.openaps_noasdata)));
+                MainApp.bus().post(new EventOpenAPSUpdateResultGui(MainApp.gs(R.string.openaps_noasdata)));
                 return;
             }
             lastAutosensResult = autosensData.autosensResult;
@@ -188,11 +190,6 @@ public class OpenAPSSMBPlugin extends PluginBase implements APSInterface, Constr
             lastAutosensResult.sensResult = "autosens disabled";
         }
 
-        IobTotal[] iobArray = IobCobCalculatorPlugin.getPlugin().calculateIobArrayForSMB(lastAutosensResult, SMBDefaults.exercise_mode, SMBDefaults.half_basal_exercise_target, isTempTarget);
-        if (L.isEnabled(L.APS))
-            Profiler.log(log, "calculateIobArrayInDia()", startPart);
-
-        startPart = System.currentTimeMillis();
         Constraint<Boolean> smbAllowed = new Constraint<>(!tempBasalFallback);
         MainApp.getConstraintChecker().isSMBModeEnabled(smbAllowed);
         inputConstraints.copyReasons(smbAllowed);
@@ -220,7 +217,7 @@ public class OpenAPSSMBPlugin extends PluginBase implements APSInterface, Constr
                     advancedFiltering.value()
             );
         } catch (JSONException e) {
-            FabricPrivacy.logException(e);
+            log.error(e.getMessage());
             return;
         }
 
@@ -229,33 +226,25 @@ public class OpenAPSSMBPlugin extends PluginBase implements APSInterface, Constr
         DetermineBasalResultSMB determineBasalResultSMB = determineBasalAdapterSMBJS.invoke();
         if (L.isEnabled(L.APS))
             Profiler.log(log, "SMB calculation", start);
-        if (determineBasalResultSMB == null) {
-            if (L.isEnabled(L.APS))
-                log.error("SMB calculation returned null");
-            lastDetermineBasalAdapterSMBJS = null;
-            lastAPSResult = null;
-            lastAPSRun = 0;
-        } else {
-            // TODO still needed with oref1?
-            // Fix bug determine basal
-            if (determineBasalResultSMB.rate == 0d && determineBasalResultSMB.duration == 0 && !TreatmentsPlugin.getPlugin().isTempBasalInProgress())
-                determineBasalResultSMB.tempBasalRequested = false;
+        // TODO still needed with oref1?
+        // Fix bug determine basal
+        if (determineBasalResultSMB.rate == 0d && determineBasalResultSMB.duration == 0 && !TreatmentsPlugin.getPlugin().isTempBasalInProgress())
+            determineBasalResultSMB.tempBasalRequested = false;
 
-            determineBasalResultSMB.iob = iobArray[0];
+        determineBasalResultSMB.iob = iobArray[0];
 
-            try {
-                determineBasalResultSMB.json.put("timestamp", DateUtil.toISOString(now));
-            } catch (JSONException e) {
-                log.error("Unhandled exception", e);
-            }
-
-            determineBasalResultSMB.inputConstraints = inputConstraints;
-
-            lastDetermineBasalAdapterSMBJS = determineBasalAdapterSMBJS;
-            lastAPSResult = determineBasalResultSMB;
-            lastAPSRun = now;
+        try {
+            determineBasalResultSMB.json.put("timestamp", DateUtil.toISOString(now));
+        } catch (JSONException e) {
+            log.error("Unhandled exception", e);
         }
-        RxBus.INSTANCE.send(new EventOpenAPSUpdateGui());
+
+        determineBasalResultSMB.inputConstraints = inputConstraints;
+
+        lastDetermineBasalAdapterSMBJS = determineBasalAdapterSMBJS;
+        lastAPSResult = determineBasalResultSMB;
+        lastAPSRun = now;
+        MainApp.bus().post(new EventOpenAPSUpdateGui());
 
         //deviceStatus.suggested = determineBasalResultAMA.json;
     }

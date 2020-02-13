@@ -1,5 +1,4 @@
 package info.nightscout.androidaps.plugins.constraints.storage;
-
 import android.os.Environment;
 import android.os.StatFs;
 
@@ -16,12 +15,13 @@ import java.io.File;
 
 import info.AAPSMocker;
 import info.nightscout.androidaps.MainApp;
+import info.nightscout.androidaps.R;
 import info.nightscout.androidaps.interfaces.Constraint;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 import static org.powermock.api.mockito.PowerMockito.whenNew;
+import static org.mockito.ArgumentMatchers.any;
 
 /**
  * Created by Rumen on 06.03.2019.
@@ -72,6 +72,7 @@ public class StorageConstraintPluginTest extends StorageConstraintPlugin{
     public void prepareMock() {
         AAPSMocker.mockMainApp();
         AAPSMocker.mockStrings();
+        AAPSMocker.mockBus();
         mockedFile = mock(File.class);
         mockedStatFs = mock(StatFs.class);
         storageConstraintPlugin = StorageConstraintPlugin.getPlugin();

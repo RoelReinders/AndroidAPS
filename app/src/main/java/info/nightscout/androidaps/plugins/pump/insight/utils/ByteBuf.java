@@ -1,8 +1,8 @@
 package info.nightscout.androidaps.plugins.pump.insight.utils;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
 
 public class ByteBuf {
 
@@ -45,9 +45,11 @@ public class ByteBuf {
     }
 
 
+
     public void putBytes(byte b, int count) {
         for (int i = 0; i < count; i++) bytes[size++] = b;
     }
+
 
 
     public byte[] getBytes(int position, int length) {
@@ -66,7 +68,7 @@ public class ByteBuf {
         return copy;
     }
 
-    byte[] readBytes() {
+    public byte[] readBytes() {
         return readBytes(size);
     }
 
@@ -80,14 +82,15 @@ public class ByteBuf {
     }
 
 
-    private byte[] getBytesLE(int position, int length) {
+
+    public byte[] getBytesLE(int position, int length) {
         byte[] copy = new byte[length];
         for (int i = 0; i < length; i++)
             copy[i] = bytes[length - 1 - i + position];
         return copy;
     }
 
-    private byte[] getBytesLE(int length) {
+    public byte[] getBytesLE(int length) {
         return getBytesLE(0, length);
     }
 
@@ -97,13 +100,13 @@ public class ByteBuf {
         return copy;
     }
 
-    private void putBytesLE(byte[] bytes, int length) {
+    public void putBytesLE(byte[] bytes, int length) {
         for (int i = 0; i < length; i++)
             this.bytes[size + length - 1 - i] = bytes[i];
         size += length;
     }
 
-    void putBytesLE(byte[] bytes) {
+    public void putBytesLE(byte[] bytes) {
         putBytesLE(bytes, bytes.length);
     }
 
@@ -113,11 +116,12 @@ public class ByteBuf {
     }
 
 
-    private short getUInt8(int position) {
+
+    public short getUInt8(int position) {
         return (short) (bytes[position] & 0xFF);
     }
 
-    private short getUInt8() {
+    public short getUInt8() {
         return getUInt8(0);
     }
 
@@ -132,12 +136,13 @@ public class ByteBuf {
     }
 
 
+
     public int getUInt16LE(int position) {
         return (bytes[position++] & 0xFF |
-                (bytes[position] & 0xFF) << 8);
+                (bytes[position] & 0xFF)  << 8);
     }
 
-    private int getUInt16LE() {
+    public int getUInt16LE() {
         return getUInt16LE(0);
     }
 
@@ -153,13 +158,14 @@ public class ByteBuf {
     }
 
 
-    private double getUInt16Decimal(int position) {
+
+    public double getUInt16Decimal(int position) {
         return new BigDecimal(getUInt16LE(position))
                 .divide(new BigDecimal(100), 2, RoundingMode.HALF_UP)
                 .doubleValue();
     }
 
-    private double getUInt16Decimal() {
+    public double getUInt16Decimal() {
         return getUInt16Decimal(0);
     }
 
@@ -177,13 +183,14 @@ public class ByteBuf {
     }
 
 
-    private double getUInt32Decimal100(int position) {
+
+    public double getUInt32Decimal100(int position) {
         return new BigDecimal(getUInt32LE(position))
                 .divide(new BigDecimal(100), 2, RoundingMode.HALF_UP)
                 .doubleValue();
     }
 
-    private double getUInt32Decimal100() {
+    public double getUInt32Decimal100() {
         return getUInt32Decimal100(0);
     }
 
@@ -201,13 +208,14 @@ public class ByteBuf {
     }
 
 
-    private double getUInt32Decimal1000(int position) {
+
+    public double getUInt32Decimal1000(int position) {
         return new BigDecimal(getUInt32LE(position))
                 .divide(new BigDecimal(1000), 3, RoundingMode.HALF_UP)
                 .doubleValue();
     }
 
-    private double getUInt32Decimal1000() {
+    public double getUInt32Decimal1000() {
         return getUInt32Decimal1000(0);
     }
 
@@ -225,8 +233,9 @@ public class ByteBuf {
     }
 
 
-    private short getShort(int position) {
-        return (short) (bytes[position++] << 8 |
+
+    public short getShort(int position) {
+        return (short) (bytes[position++]  << 8 |
                 bytes[position] & 0xFF);
     }
 
@@ -246,14 +255,15 @@ public class ByteBuf {
     }
 
 
-    private long getUInt32LE(int position) {
+
+    public long getUInt32LE(int position) {
         return ((long) bytes[position++] & 0xFF) |
                 ((long) bytes[position++] & 0xFF) << 8 |
                 ((long) bytes[position++] & 0xFF) << 16 |
                 ((long) bytes[position] & 0xFF) << 24;
     }
 
-    private long getUInt32LE() {
+    public long getUInt32LE() {
         return getUInt32LE(0);
     }
 
@@ -271,12 +281,18 @@ public class ByteBuf {
     }
 
 
-    private String getUTF16(int position, int stringLength) {
-        String string = new String(getBytes(position, stringLength * 2 + 2), StandardCharsets.UTF_16LE);
-        return string.substring(0, string.indexOf(new String(new char[]{0, 0})));
+
+    public String getUTF16(int position, int stringLength) {
+        try {
+            String string = new String(getBytes(position, stringLength * 2 + 2), "UTF-16LE");
+            return string.substring(0, string.indexOf(new String(new char[] {0, 0})));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
-    private String getUTF16(int stringLength) {
+    public String getUTF16(int stringLength) {
         return getUTF16(0, stringLength);
     }
 
@@ -287,17 +303,27 @@ public class ByteBuf {
     }
 
     public void putUTF16(String string, int stringLength) {
-        putBytes(string.getBytes(StandardCharsets.UTF_16LE), stringLength * 2);
-        putBytes((byte) 0, 2);
+        try {
+            putBytes(string.getBytes("UTF-16LE"), stringLength * 2);
+            putBytes((byte) 0, 2);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
     }
 
 
-    private String getASCII(int position, int stringLength) {
-        String string = new String(getBytes(position, stringLength + 1), StandardCharsets.US_ASCII);
-        return string.substring(0, string.indexOf(0));
+
+    public String getASCII(int position, int stringLength) {
+        try {
+            String string = new String(getBytes(position, stringLength + 1), "US-ASCII");
+            return string.substring(0, string.indexOf(0));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
-    private String getASCII(int stringLength) {
+    public String getASCII(int stringLength) {
         return getASCII(0, stringLength);
     }
 
@@ -308,9 +334,14 @@ public class ByteBuf {
     }
 
     public void putASCII(String string, int stringLength) {
-        putBytes(string.getBytes(StandardCharsets.UTF_16LE), stringLength * 2);
-        putBytes((byte) 0, 1);
+        try {
+            putBytes(string.getBytes("UTF-16LE"), stringLength * 2);
+            putBytes((byte) 0, 1);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
     }
+
 
 
     public boolean getBoolean(int position) {
@@ -330,6 +361,7 @@ public class ByteBuf {
     public void putBoolean(boolean bool) {
         putUInt16LE(bool ? 75 : 180);
     }
+
 
 
     public static ByteBuf from(byte[] bytes, int length) {

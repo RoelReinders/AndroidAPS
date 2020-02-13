@@ -179,6 +179,7 @@ public class APSResultTest {
         AAPSMocker.mockConfigBuilder();
         AAPSMocker.mockSP();
         AAPSMocker.mockStrings();
+        AAPSMocker.mockBus();
         AAPSMocker.mockProfileFunctions();
         AAPSMocker.mockTreatmentService();
         AAPSMocker.mockL();

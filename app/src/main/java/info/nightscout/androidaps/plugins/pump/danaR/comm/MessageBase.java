@@ -105,9 +105,6 @@ public class MessageBase {
         }
     }
 
-    public void handleMessageNotReceived() {
-    }
-
     public int getCommand() {
         int command = byteFromRawBuff(buffer, 5) | (byteFromRawBuff(buffer, 4) << 8);
         return command;
@@ -191,9 +188,5 @@ public class MessageBase {
         }
 
         return sb.toString();
-    }
-
-    public boolean isReceived() {
-        return received;
     }
 }

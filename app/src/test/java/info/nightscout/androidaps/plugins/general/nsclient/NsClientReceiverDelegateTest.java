@@ -1,6 +1,7 @@
 package info.nightscout.androidaps.plugins.general.nsclient;
 
 import android.content.Context;
+import com.squareup.otto.Bus;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -33,9 +34,10 @@ public class NsClientReceiverDelegateTest {
         AAPSMocker.mockMainApp();
         AAPSMocker.mockApplicationContext();
 
+        Bus bus = MainApp.bus();
         Context context = MainApp.instance().getApplicationContext();
 
-        sut = new NsClientReceiverDelegate(context);
+        sut = new NsClientReceiverDelegate(context, bus);
     }
 
     @Test
@@ -62,67 +64,67 @@ public class NsClientReceiverDelegateTest {
         when(SP.getBoolean(anyInt(), anyBoolean())).thenReturn(false);
         when(SP.getString(anyInt(), anyString())).thenReturn("");
         EventNetworkChange ev = new EventNetworkChange();
-        ev.setSsid("<unknown ssid>");
+        ev.ssid = "<unknown ssid>";
 
-        ev.setMobileConnected(true);
-        ev.setWifiConnected(true);
+        ev.mobileConnected = true;
+        ev.wifiConnected = true;
         assertTrue(sut.calculateStatus(ev));
 
-        ev.setSsid("test");
+        ev.ssid = "test";
         when(SP.getString(anyInt(), anyString())).thenReturn("\"test\"");
         assertTrue(sut.calculateStatus(ev));
 
-        ev.setSsid("\"test\"");
+        ev.ssid = "\"test\"";
         assertTrue(sut.calculateStatus(ev));
         
-        ev.setWifiConnected(false);
+        ev.wifiConnected = false;
         assertTrue(sut.calculateStatus(ev));
 
         // wifiOnly = true
         // allowRoaming = true as well
         when(SP.getBoolean(anyInt(), anyBoolean())).thenReturn(true);
-        ev.setWifiConnected(true);
+        ev.wifiConnected = true;
         assertTrue(sut.calculateStatus(ev));
-        ev.setWifiConnected(false);
+        ev.wifiConnected = false;
         assertTrue(!sut.calculateStatus(ev));
 
         // wifiOnly = false
         // allowRoaming = false as well
         when(SP.getBoolean(anyInt(), anyBoolean())).thenReturn(false);
-        ev.setWifiConnected(false);
-        ev.setRoaming(true);
+        ev.wifiConnected = false;
+        ev.roaming = true;
         assertTrue(!sut.calculateStatus(ev));
 
         // wifiOnly = false
         // allowRoaming = true
         when(SP.getBoolean(R.string.key_ns_wifionly, false)).thenReturn(false);
         when(SP.getBoolean(R.string.key_ns_allowroaming, true)).thenReturn(true);
-        ev.setWifiConnected(false);
-        ev.setRoaming(true);
+        ev.wifiConnected = false;
+        ev.roaming = true;
         assertTrue(sut.calculateStatus(ev));
 
         // wifiOnly = true
         // allowRoaming = true
         when(SP.getBoolean(R.string.key_ns_wifionly, false)).thenReturn(true);
         when(SP.getBoolean(R.string.key_ns_allowroaming, true)).thenReturn(true);
-        ev.setWifiConnected(false);
-        ev.setRoaming(true);
+        ev.wifiConnected = false;
+        ev.roaming = true;
         assertTrue(!sut.calculateStatus(ev));
 
         // wifiOnly = true
         // allowRoaming = true
         when(SP.getBoolean(R.string.key_ns_wifionly, false)).thenReturn(true);
         when(SP.getBoolean(R.string.key_ns_allowroaming, true)).thenReturn(true);
-        ev.setWifiConnected(true);
-        ev.setRoaming(true);
+        ev.wifiConnected = true;
+        ev.roaming = true;
         assertTrue(sut.calculateStatus(ev));
 
         // wifiOnly = false
         // allowRoaming = false
         when(SP.getBoolean(R.string.key_ns_wifionly, false)).thenReturn(false);
         when(SP.getBoolean(R.string.key_ns_allowroaming, true)).thenReturn(false);
-        ev.setWifiConnected(true);
-        ev.setRoaming(true);
+        ev.wifiConnected = true;
+        ev.roaming = true;
         assertTrue(sut.calculateStatus(ev));
     }
 }

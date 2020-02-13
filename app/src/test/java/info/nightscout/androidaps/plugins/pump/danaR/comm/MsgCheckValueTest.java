@@ -13,7 +13,7 @@ import info.nightscout.androidaps.plugins.pump.danaR.DanaRPump;
 import info.nightscout.androidaps.plugins.treatments.Treatment;
 import info.nightscout.androidaps.utils.SP;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 /**
  * Created by Rumen Georgiev on 8/28/2018.
@@ -28,6 +28,7 @@ public class MsgCheckValueTest {
         AAPSMocker.mockApplicationContext();
         AAPSMocker.mockSP();
         AAPSMocker.mockL();
+        AAPSMocker.mockBus();
         Treatment t = new Treatment();
         MsgCheckValue packet = new MsgCheckValue();
 

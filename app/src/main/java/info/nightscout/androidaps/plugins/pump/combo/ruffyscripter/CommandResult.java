@@ -1,6 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.combo.ruffyscripter;
 
-import androidx.annotation.Nullable;
+import android.support.annotation.Nullable;
 
 import java.util.LinkedList;
 import java.util.List;

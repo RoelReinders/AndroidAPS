@@ -43,12 +43,6 @@ public class T {
         return t;
     }
 
-    public static T months(long month) {
-        T t = new T();
-        t.time = month * 31 * 24 * 60 * 60 * 1000L;
-        return t;
-    }
-
     public long msecs() {
         return time;
     }

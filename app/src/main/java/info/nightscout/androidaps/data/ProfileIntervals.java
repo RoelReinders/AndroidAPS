@@ -1,7 +1,7 @@
 package info.nightscout.androidaps.data;
 
-import androidx.annotation.Nullable;
-import androidx.collection.LongSparseArray;
+import android.support.annotation.Nullable;
+import android.support.v4.util.LongSparseArray;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +31,7 @@ public class ProfileIntervals<T extends Interval> {
         rawData = other.rawData.clone();
     }
 
-    public synchronized ProfileIntervals<T> reset() {
+    public synchronized ProfileIntervals reset() {
         rawData = new LongSparseArray<>();
         return this;
     }

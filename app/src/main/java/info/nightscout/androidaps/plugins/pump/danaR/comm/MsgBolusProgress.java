@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import info.nightscout.androidaps.MainApp;
 import info.nightscout.androidaps.R;
 import info.nightscout.androidaps.logging.L;
-import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.general.overview.events.EventOverviewBolusProgress;
 import info.nightscout.androidaps.plugins.treatments.Treatment;
 
@@ -38,15 +37,15 @@ public class MsgBolusProgress extends MessageBase {
         lastReceive = System.currentTimeMillis();
         Double done = (amount * 100 - progress) / 100d;
         t.insulin = done;
-        EventOverviewBolusProgress bolusingEvent = EventOverviewBolusProgress.INSTANCE;
-        bolusingEvent.setStatus(String.format(MainApp.gs(R.string.bolusdelivering), done));
-        bolusingEvent.setT(t);
-        bolusingEvent.setPercent(Math.min((int) (done / amount * 100), 100));
+        EventOverviewBolusProgress bolusingEvent = EventOverviewBolusProgress.getInstance();
+        bolusingEvent.status = String.format(MainApp.gs(R.string.bolusdelivering), done);
+        bolusingEvent.t = t;
+        bolusingEvent.percent = Math.min((int) (done / amount * 100), 100);
 
         if (L.isEnabled(L.PUMPCOMM)) {
             log.debug("Bolus remaining: " + progress + " delivered: " + done);
         }
 
-        RxBus.INSTANCE.send(bolusingEvent);
+        MainApp.bus().post(bolusingEvent);
     }
 }

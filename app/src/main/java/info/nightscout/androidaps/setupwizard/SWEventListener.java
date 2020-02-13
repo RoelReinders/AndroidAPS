@@ -1,42 +1,33 @@
 package info.nightscout.androidaps.setupwizard;
 
 import android.content.Context;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import com.squareup.otto.Subscribe;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import info.nightscout.androidaps.MainApp;
-import info.nightscout.androidaps.events.EventStatus;
-import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.setupwizard.elements.SWItem;
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.disposables.CompositeDisposable;
+import info.nightscout.androidaps.setupwizard.events.EventSWLabel;
 
 
 public class SWEventListener extends SWItem {
     private static Logger log = LoggerFactory.getLogger(SWEventListener.class);
-    private CompositeDisposable disposable = new CompositeDisposable();
 
     private int textLabel = 0;
     private String status = "";
     TextView textView;
+    Object listener;
     SWDefinition definition;
 
-    SWEventListener(SWDefinition definition, Class clazz) {
+    SWEventListener(SWDefinition definition) {
         super(Type.LISTENER);
         this.definition = definition;
-        disposable.add(RxBus.INSTANCE
-                .toObservable(clazz)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(event -> {
-                    status = ((EventStatus) event).getStatus();
-                    if (textView != null)
-                        textView.setText((textLabel != 0 ? MainApp.gs(textLabel) : "") + " " + status);
-                })
-        );
-
+        MainApp.bus().register(this);
     }
 
     public SWEventListener label(int newLabel) {
@@ -44,8 +35,13 @@ public class SWEventListener extends SWItem {
         return this;
     }
 
-    SWEventListener initialStatus(String status) {
+    public SWEventListener initialStatus(String status) {
         this.status = status;
+        return this;
+    }
+
+    public SWEventListener listener(Object listener) {
+        this.listener = listener;
         return this;
     }
 
@@ -57,5 +53,20 @@ public class SWEventListener extends SWItem {
         textView.setId(layout.generateViewId());
         textView.setText((textLabel != 0 ? MainApp.gs(textLabel) : "") + " " + status);
         layout.addView(textView);
+        if (listener != null)
+            try {
+                MainApp.bus().register(listener);
+            } catch (Exception ignored) {}
     }
+
+    @Subscribe
+    public void onEventSWLabel(final EventSWLabel l) {
+        status = l.label;
+        if (definition != null && definition.getActivity() != null)
+            definition.getActivity().runOnUiThread(() -> {
+                if (textView != null)
+                    textView.setText((textLabel != 0 ? MainApp.gs(textLabel) : "") + " " + status);
+            });
+    }
+
 }

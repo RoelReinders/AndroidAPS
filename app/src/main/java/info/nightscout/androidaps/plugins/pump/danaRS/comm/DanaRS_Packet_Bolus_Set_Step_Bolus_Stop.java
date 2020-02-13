@@ -9,7 +9,6 @@ import info.nightscout.androidaps.R;
 import com.cozmo.danar.util.BleCommandUtil;
 
 import info.nightscout.androidaps.logging.L;
-import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.treatments.Treatment;
 import info.nightscout.androidaps.plugins.general.overview.events.EventOverviewBolusProgress;
 
@@ -48,16 +47,16 @@ public class DanaRS_Packet_Bolus_Set_Step_Bolus_Stop extends DanaRS_Packet {
             }
         }
 
-        EventOverviewBolusProgress bolusingEvent = EventOverviewBolusProgress.INSTANCE;
+        EventOverviewBolusProgress bolusingEvent = EventOverviewBolusProgress.getInstance();
         stopped = true;
         if (!forced) {
             t.insulin = amount;
-            bolusingEvent.setStatus(MainApp.gs(R.string.overview_bolusprogress_delivered));
-            bolusingEvent.setPercent(100);
+            bolusingEvent.status = MainApp.gs(R.string.overview_bolusprogress_delivered);
+            bolusingEvent.percent = 100;
         } else {
-            bolusingEvent.setStatus(MainApp.gs(R.string.overview_bolusprogress_stoped));
+            bolusingEvent.status = MainApp.gs(R.string.overview_bolusprogress_stoped);
         }
-        RxBus.INSTANCE.send(bolusingEvent);
+        MainApp.bus().post(bolusingEvent);
     }
 
     @Override

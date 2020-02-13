@@ -11,7 +11,7 @@ import info.nightscout.androidaps.logging.L;
 import info.nightscout.androidaps.plugins.general.nsclient.NSUpload;
 import info.nightscout.androidaps.utils.SP;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 /**
  * Created by Rumen Georgiev on 8/28/2018.
@@ -26,6 +26,7 @@ public class MsgErrorTest {
         AAPSMocker.mockApplicationContext();
         AAPSMocker.mockSP();
         AAPSMocker.mockL();
+        AAPSMocker.mockBus();
         AAPSMocker.mockNSUpload();
         MsgError packet = new MsgError();
 

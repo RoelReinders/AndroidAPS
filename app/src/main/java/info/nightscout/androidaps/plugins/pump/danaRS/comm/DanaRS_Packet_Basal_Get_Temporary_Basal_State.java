@@ -1,6 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.danaRS.comm;
 
-import androidx.annotation.NonNull;
+import android.support.annotation.NonNull;
 
 import com.cozmo.danar.util.BleCommandUtil;
 

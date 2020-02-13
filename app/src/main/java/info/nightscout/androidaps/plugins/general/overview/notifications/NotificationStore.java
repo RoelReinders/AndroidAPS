@@ -7,14 +7,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.AudioManager;
+import android.media.AudioAttributes;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
-import android.view.View;
-
-import androidx.core.app.NotificationCompat;
-import androidx.recyclerview.widget.RecyclerView;
+import android.support.v4.app.NotificationCompat;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +21,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import info.nightscout.androidaps.Config;
 import info.nightscout.androidaps.MainApp;
 import info.nightscout.androidaps.R;
 import info.nightscout.androidaps.logging.L;
@@ -67,23 +65,17 @@ public class NotificationStore {
 
         if (SP.getBoolean(MainApp.gs(R.string.key_raise_notifications_as_android_notifications), false) && !(n instanceof NotificationWithAction)) {
             raiseSystemNotification(n);
-            if (usesChannels && n.soundId != null && n.soundId != 0) {
+            if (usesChannels && n.soundId != null) {
                 Intent alarm = new Intent(MainApp.instance().getApplicationContext(), AlarmSoundService.class);
                 alarm.putExtra("soundid", n.soundId);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                    MainApp.instance().startForegroundService(alarm);
-                else
-                    MainApp.instance().startService(alarm);
+                MainApp.instance().startService(alarm);
             }
 
         } else {
-            if (n.soundId != null && n.soundId != 0) {
+            if (n.soundId != null) {
                 Intent alarm = new Intent(MainApp.instance().getApplicationContext(), AlarmSoundService.class);
                 alarm.putExtra("soundid", n.soundId);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                    MainApp.instance().startForegroundService(alarm);
-                else
-                    MainApp.instance().startService(alarm);
+                MainApp.instance().startService(alarm);
             }
         }
 
@@ -105,7 +97,7 @@ public class NotificationStore {
         return false;
     }
 
-    private synchronized void removeExpired() {
+    public synchronized void removeExpired() {
         for (int i = 0; i < store.size(); i++) {
             Notification n = store.get(i);
             if (n.validTo.getTime() != 0 && n.validTo.getTime() < System.currentTimeMillis()) {
@@ -115,13 +107,13 @@ public class NotificationStore {
         }
     }
 
-    void snoozeTo(long timeToSnooze) {
+    public void snoozeTo(long timeToSnooze) {
         if (L.isEnabled(L.NOTIFICATION))
             log.debug("Snoozing alarm until: " + timeToSnooze);
         SP.putLong("snoozedTo", timeToSnooze);
     }
 
-    private void unSnooze() {
+    public void unSnooze() {
         if (Notification.isAlarmForStaleData()) {
             Notification notification = new Notification(Notification.NSALARM, MainApp.gs(R.string.nsalarm_staledata), Notification.URGENT);
             SP.putLong("snoozedTo", System.currentTimeMillis());
@@ -147,7 +139,7 @@ public class NotificationStore {
         if (n.level == Notification.URGENT) {
             notificationBuilder.setVibrate(new long[]{1000, 1000, 1000, 1000})
                     .setContentTitle(MainApp.gs(R.string.urgent_alarm))
-                    .setSound(sound, AudioManager.STREAM_ALARM);
+                    .setSound(sound, AudioAttributes.USAGE_ALARM);
         } else {
             notificationBuilder.setVibrate(new long[]{0, 100, 50, 100, 50})
                     .setContentTitle(MainApp.gs(R.string.info))
@@ -168,21 +160,4 @@ public class NotificationStore {
         }
     }
 
-    public synchronized void updateNotifications(RecyclerView notificationsView) {
-        removeExpired();
-        unSnooze();
-        if (store.size() > 0) {
-            NotificationRecyclerViewAdapter adapter = new NotificationRecyclerViewAdapter(cloneStore());
-            notificationsView.setAdapter(adapter);
-            notificationsView.setVisibility(View.VISIBLE);
-        } else {
-            notificationsView.setVisibility(View.GONE);
-        }
-    }
-
-    private synchronized List<Notification> cloneStore() {
-        List<Notification> clone = new ArrayList<>(store.size());
-        clone.addAll(store);
-        return clone;
-    }
 }

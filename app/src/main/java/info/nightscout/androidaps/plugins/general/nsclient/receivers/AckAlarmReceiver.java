@@ -27,7 +27,7 @@ public class AckAlarmReceiver extends BroadcastReceiver {
         PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                 AckAlarmReceiver.class.getSimpleName());
-        NSClientPlugin nsClientPlugin = NSClientPlugin.getPlugin();
+        NSClientPlugin nsClientPlugin = MainApp.getSpecificPlugin(NSClientPlugin.class);
         if (!nsClientPlugin.isEnabled(PluginType.GENERAL)) {
             return;
         }

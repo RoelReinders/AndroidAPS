@@ -12,7 +12,7 @@ import java.io.OutputStream;
 
 import info.nightscout.androidaps.logging.L;
 import info.nightscout.androidaps.plugins.pump.danaR.comm.MessageBase;
-import info.nightscout.androidaps.plugins.pump.danaR.comm.MessageHashTableBase;
+import info.nightscout.androidaps.plugins.pump.danaR.comm.MessageHashTable;
 import info.nightscout.androidaps.plugins.pump.danaR.services.AbstractSerialIOThread;
 import info.nightscout.androidaps.utils.CRC;
 
@@ -30,11 +30,9 @@ public class SerialIOThread extends AbstractSerialIOThread {
     private byte[] mReadBuff = new byte[0];
 
     private MessageBase processedMessage;
-    private MessageHashTableBase hashTable;
 
-    public SerialIOThread(BluetoothSocket rfcommSocket, MessageHashTableBase hashTable) {
+    public SerialIOThread(BluetoothSocket rfcommSocket) {
         super();
-        this.hashTable = hashTable;
 
         mRfCommSocket = rfcommSocket;
         try {
@@ -70,11 +68,11 @@ public class SerialIOThread extends AbstractSerialIOThread {
                         message = processedMessage;
                     } else {
                         // get it from hash table
-                        message = hashTable.findMessage(command);
+                        message = MessageHashTable.findMessage(command);
                     }
 
                     if (L.isEnabled(L.PUMPBTCOMM))
-                        log.debug("<<<<< " + message.getMessageName() + " " + MessageBase.toHexString(extractedBuff));
+                        log.debug("<<<<< " + message.getMessageName() + " " + message.toHexString(extractedBuff));
 
                     // process the message content
                     message.received = true;
@@ -85,14 +83,14 @@ public class SerialIOThread extends AbstractSerialIOThread {
                 }
             }
         } catch (Exception e) {
-            if (!e.getMessage().contains("bt socket closed"))
+            if (e.getMessage().indexOf("bt socket closed") < 0)
                 log.error("Thread exception: ", e);
             mKeepRunning = false;
         }
         disconnect("EndOfLoop");
     }
 
-    private void appendToBuffer(byte[] newData, int gotBytes) {
+    void appendToBuffer(byte[] newData, int gotBytes) {
         // add newData to mReadBuff
         byte[] newReadBuff = new byte[mReadBuff.length + gotBytes];
         System.arraycopy(mReadBuff, 0, newReadBuff, 0, mReadBuff.length);
@@ -100,7 +98,7 @@ public class SerialIOThread extends AbstractSerialIOThread {
         mReadBuff = newReadBuff;
     }
 
-    private byte[] cutMessageFromBuffer() {
+    byte[] cutMessageFromBuffer() {
         if (mReadBuff[0] == (byte) 0x7E && mReadBuff[1] == (byte) 0x7E) {
             int length = (mReadBuff[2] & 0xFF) + 7;
             // Check if we have enough data
@@ -150,7 +148,7 @@ public class SerialIOThread extends AbstractSerialIOThread {
 
         byte[] messageBytes = message.getRawMessageBytes();
         if (L.isEnabled(L.PUMPBTCOMM))
-            log.debug(">>>>> " + message.getMessageName() + " " + MessageBase.toHexString(messageBytes));
+            log.debug(">>>>> " + message.getMessageName() + " " + message.toHexString(messageBytes));
 
         try {
             mOutputStream.write(messageBytes);
@@ -167,10 +165,8 @@ public class SerialIOThread extends AbstractSerialIOThread {
         }
 
         SystemClock.sleep(200);
-        if (!message.isReceived()) {
-            message.handleMessageNotReceived();
-            if (L.isEnabled(L.PUMPBTCOMM))
-                log.error("Reply not received " + message.getMessageName());
+        if (!message.received) {
+            log.warn("Reply not received " + message.getMessageName());
             if (message.getCommand() == 0xF0F1) {
                 DanaRPump.getInstance().isNewPump = false;
                 if (L.isEnabled(L.PUMPCOMM))

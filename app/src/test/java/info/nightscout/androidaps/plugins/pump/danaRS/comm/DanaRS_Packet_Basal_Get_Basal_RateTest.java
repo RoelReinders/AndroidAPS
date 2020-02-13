@@ -26,6 +26,7 @@ public class DanaRS_Packet_Basal_Get_Basal_RateTest {
         AAPSMocker.mockMainApp();
         AAPSMocker.mockApplicationContext();
         AAPSMocker.mockSP();
+        AAPSMocker.mockBus();
         AAPSMocker.mockL();
 
         DanaRS_Packet_Basal_Get_Basal_Rate packet = new DanaRS_Packet_Basal_Get_Basal_Rate();

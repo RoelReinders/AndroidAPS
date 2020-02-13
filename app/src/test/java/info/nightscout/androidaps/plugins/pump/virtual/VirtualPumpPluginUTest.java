@@ -35,6 +35,7 @@ public class VirtualPumpPluginUTest {
     public void prepareMocks() throws Exception {
         AAPSMocker.mockMainApp();
         AAPSMocker.mockConfigBuilder();
+        AAPSMocker.mockBus();
         AAPSMocker.mockStrings();
         AAPSMocker.mockCommandQueue();
         AAPSMocker.mockSP();

@@ -1,6 +1,6 @@
 package info.nightscout.androidaps.interfaces;
 
-import androidx.annotation.Nullable;
+import android.support.annotation.Nullable;
 
 import info.nightscout.androidaps.data.ProfileStore;
 

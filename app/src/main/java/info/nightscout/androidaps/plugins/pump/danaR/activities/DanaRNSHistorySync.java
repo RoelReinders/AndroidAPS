@@ -14,7 +14,6 @@ import info.nightscout.androidaps.data.Profile;
 import info.nightscout.androidaps.db.CareportalEvent;
 import info.nightscout.androidaps.db.DanaRHistoryRecord;
 import info.nightscout.androidaps.logging.L;
-import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.configBuilder.ProfileFunctions;
 import info.nightscout.androidaps.plugins.pump.danaR.comm.RecordTypes;
 import info.nightscout.androidaps.plugins.pump.danaR.events.EventDanaRSyncStatus;
@@ -29,13 +28,13 @@ public class DanaRNSHistorySync {
     private static Logger log = LoggerFactory.getLogger(L.PUMP);
     private List<DanaRHistoryRecord> historyRecords;
 
-    private final static int SYNC_BOLUS = 0b00000001;
-    private final static int SYNC_ERROR = 0b00000010;
-    private final static int SYNC_REFILL = 0b00000100;
-    private final static int SYNC_GLUCOSE = 0b00001000;
-    private final static int SYNC_CARBO = 0b00010000;
-    private final static int SYNC_ALARM = 0b00100000;
-    private final static int SYNC_BASALHOURS = 0b01000000;
+    public final static int SYNC_BOLUS = 0b00000001;
+    public final static int SYNC_ERROR = 0b00000010;
+    public final static int SYNC_REFILL = 0b00000100;
+    public final static int SYNC_GLUCOSE = 0b00001000;
+    public final static int SYNC_CARBO = 0b00010000;
+    public final static int SYNC_ALARM = 0b00100000;
+    public final static int SYNC_BASALHOURS = 0b01000000;
     public final static int SYNC_ALL = 0b11111111;
 
     public final static String DANARSIGNATURE = "DANARMESSAGE";
@@ -53,13 +52,13 @@ public class DanaRNSHistorySync {
             long uploaded = 0;
             if (L.isEnabled(L.PUMP))
                 log.debug("Database contains " + records + " records");
-            EventDanaRSyncStatus ev = new EventDanaRSyncStatus("");
+            EventDanaRSyncStatus ev = new EventDanaRSyncStatus();
             for (DanaRHistoryRecord record : historyRecords) {
                 processing++;
                 if (record._id != null) continue;
                 //log.debug(record.bytes);
                 JSONObject nsrec = new JSONObject();
-                ev.setMessage(MainApp.gs(R.string.uploading) + " " + processing + "/" + records + " "); // TODO: translations
+                ev.message = MainApp.gs(R.string.uploading) + " " + processing + "/" + records + " "; // TODO: translations
                 switch (record.recordCode) {
                     case RecordTypes.RECORD_TYPE_BOLUS:
                         if ((what & SYNC_BOLUS) == 0) break;
@@ -74,7 +73,7 @@ public class DanaRNSHistorySync {
                                 nsrec.put("enteredBy", "openaps://" + MainApp.gs(R.string.app_name));
                                 NSUpload.uploadCareportalEntryToNS(nsrec);
                                 uploaded++;
-                                ev.setMessage(ev.getMessage() + MainApp.gs(R.string.danar_sbolus));
+                                ev.message += MainApp.gs(R.string.danar_sbolus);
                                 break;
                             case "E":
                                 if (record.recordDuration > 0) {
@@ -93,7 +92,7 @@ public class DanaRNSHistorySync {
                                     nsrec.put("enteredBy", "openaps://" + MainApp.gs(R.string.app_name));
                                     NSUpload.uploadCareportalEntryToNS(nsrec);
                                     uploaded++;
-                                    ev.setMessage(ev.getMessage() + MainApp.gs(R.string.danar_ebolus));
+                                    ev.message += MainApp.gs(R.string.danar_ebolus);
                                 } else {
                                     if (L.isEnabled(L.PUMP))
                                         log.debug("NOT Syncing extended bolus record " + record.recordValue + "U " + DateUtil.toISOString(record.recordDate) + " zero duration");
@@ -111,7 +110,7 @@ public class DanaRNSHistorySync {
                                 nsrec.put("enteredBy", "openaps://" + MainApp.gs(R.string.app_name));
                                 NSUpload.uploadCareportalEntryToNS(nsrec);
                                 uploaded++;
-                                ev.setMessage(ev.getMessage() + MainApp.gs(R.string.danar_dsbolus));
+                                ev.message += MainApp.gs(R.string.danar_dsbolus);
                                 break;
                             case "DE":
                                 if (L.isEnabled(L.PUMP))
@@ -128,7 +127,7 @@ public class DanaRNSHistorySync {
                                 nsrec.put("enteredBy", "openaps://" + MainApp.gs(R.string.app_name));
                                 NSUpload.uploadCareportalEntryToNS(nsrec);
                                 uploaded++;
-                                ev.setMessage(ev.getMessage() + MainApp.gs(R.string.danar_debolus));
+                                ev.message += MainApp.gs(R.string.danar_debolus);
                                 break;
                             default:
                                 log.error("Unknown bolus record");
@@ -146,7 +145,7 @@ public class DanaRNSHistorySync {
                         nsrec.put("enteredBy", "openaps://" + MainApp.gs(R.string.app_name));
                         NSUpload.uploadCareportalEntryToNS(nsrec);
                         uploaded++;
-                        ev.setMessage(ev.getMessage() + MainApp.gs(R.string.danar_error));
+                        ev.message += MainApp.gs(R.string.danar_error);
                         break;
                     case RecordTypes.RECORD_TYPE_REFILL:
                         if ((what & SYNC_REFILL) == 0) break;
@@ -159,7 +158,7 @@ public class DanaRNSHistorySync {
                         nsrec.put("enteredBy", "openaps://" + MainApp.gs(R.string.app_name));
                         NSUpload.uploadCareportalEntryToNS(nsrec);
                         uploaded++;
-                        ev.setMessage(ev.getMessage() + MainApp.gs(R.string.danar_refill));
+                        ev.message += MainApp.gs(R.string.danar_refill);
                         break;
                     case RecordTypes.RECORD_TYPE_BASALHOUR:
                         if ((what & SYNC_BASALHOURS) == 0) break;
@@ -173,7 +172,7 @@ public class DanaRNSHistorySync {
                         nsrec.put("enteredBy", "openaps://" + MainApp.gs(R.string.app_name));
                         NSUpload.uploadCareportalEntryToNS(nsrec);
                         uploaded++;
-                        ev.setMessage(ev.getMessage() + MainApp.gs(R.string.danar_basalhour));
+                        ev.message += MainApp.gs(R.string.danar_basalhour);
                         break;
                     case RecordTypes.RECORD_TYPE_TB:
                         //log.debug("Ignoring TB record " + record.bytes + " " + DateUtil.toISOString(record.recordDate));
@@ -190,7 +189,7 @@ public class DanaRNSHistorySync {
                         nsrec.put("enteredBy", "openaps://" + MainApp.gs(R.string.app_name));
                         NSUpload.uploadCareportalEntryToNS(nsrec);
                         uploaded++;
-                        ev.setMessage(ev.getMessage() + MainApp.gs(R.string.danar_glucose));
+                        ev.message += MainApp.gs(R.string.danar_glucose);
                         break;
                     case RecordTypes.RECORD_TYPE_CARBO:
                         if ((what & SYNC_CARBO) == 0) break;
@@ -203,7 +202,7 @@ public class DanaRNSHistorySync {
                         nsrec.put("enteredBy", "openaps://" + MainApp.gs(R.string.app_name));
                         NSUpload.uploadCareportalEntryToNS(nsrec);
                         uploaded++;
-                        ev.setMessage(ev.getMessage() + MainApp.gs(R.string.danar_carbohydrate));
+                        ev.message += MainApp.gs(R.string.danar_carbohydrate);
                         break;
                     case RecordTypes.RECORD_TYPE_ALARM:
                         if ((what & SYNC_ALARM) == 0) break;
@@ -216,7 +215,7 @@ public class DanaRNSHistorySync {
                         nsrec.put("enteredBy", "openaps://" + MainApp.gs(R.string.app_name));
                         NSUpload.uploadCareportalEntryToNS(nsrec);
                         uploaded++;
-                        ev.setMessage(ev.getMessage() + MainApp.gs(R.string.danar_alarm));
+                        ev.message += MainApp.gs(R.string.danar_alarm);
                         break;
                     case RecordTypes.RECORD_TYPE_SUSPEND: // TODO: this too
                     case RecordTypes.RECORD_TYPE_DAILY:
@@ -227,10 +226,10 @@ public class DanaRNSHistorySync {
                         log.error("Unknown record type");
                         break;
                 }
-                RxBus.INSTANCE.send(ev);
+                MainApp.bus().post(ev);
             }
-            ev.setMessage(String.format(MainApp.gs(R.string.danar_totaluploaded), uploaded));
-            RxBus.INSTANCE.send(ev);
+            ev.message = String.format(MainApp.gs(R.string.danar_totaluploaded), uploaded);
+            MainApp.bus().post(ev);
 
         } catch (JSONException e) {
             log.error("Unhandled exception", e);

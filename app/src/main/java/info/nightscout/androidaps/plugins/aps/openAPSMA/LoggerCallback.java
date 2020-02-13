@@ -36,14 +36,16 @@ public class LoggerCallback extends ScriptableObject {
 
     public void jsFunction_log(Object obj1) {
         if (L.isEnabled(L.APS))
-            log.debug(obj1.toString().trim());
+            log.debug(obj1.toString());
         logBuffer.append(obj1.toString());
+        logBuffer.append(' ');
     }
 
     public void jsFunction_error(Object obj1) {
         if (L.isEnabled(L.APS))
-            log.error(obj1.toString().trim());
+            log.error(obj1.toString());
         errorBuffer.append(obj1.toString());
+        errorBuffer.append(' ');
     }
 
 

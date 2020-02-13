@@ -8,8 +8,10 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 
-import androidx.fragment.app.FragmentActivity;
-
+import info.nightscout.androidaps.plugins.general.actions.defs.CustomAction;
+import info.nightscout.androidaps.plugins.general.actions.defs.CustomActionType;
+import info.nightscout.androidaps.plugins.pump.insight.app_layer.parameter_blocks.*;
+import info.nightscout.androidaps.plugins.pump.insight.descriptors.*;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -43,12 +45,8 @@ import info.nightscout.androidaps.interfaces.PluginType;
 import info.nightscout.androidaps.interfaces.PumpDescription;
 import info.nightscout.androidaps.interfaces.PumpInterface;
 import info.nightscout.androidaps.logging.L;
-import info.nightscout.androidaps.plugins.bus.RxBus;
-import info.nightscout.androidaps.plugins.common.ManufacturerType;
 import info.nightscout.androidaps.plugins.configBuilder.ConfigBuilderPlugin;
 import info.nightscout.androidaps.plugins.configBuilder.ProfileFunctions;
-import info.nightscout.androidaps.plugins.general.actions.defs.CustomAction;
-import info.nightscout.androidaps.plugins.general.actions.defs.CustomActionType;
 import info.nightscout.androidaps.plugins.general.nsclient.NSUpload;
 import info.nightscout.androidaps.plugins.general.nsclient.UploadQueue;
 import info.nightscout.androidaps.plugins.general.overview.events.EventDismissNotification;
@@ -75,14 +73,6 @@ import info.nightscout.androidaps.plugins.pump.insight.app_layer.history.history
 import info.nightscout.androidaps.plugins.pump.insight.app_layer.history.history_events.StartOfTBREvent;
 import info.nightscout.androidaps.plugins.pump.insight.app_layer.history.history_events.TotalDailyDoseEvent;
 import info.nightscout.androidaps.plugins.pump.insight.app_layer.history.history_events.TubeFilledEvent;
-import info.nightscout.androidaps.plugins.pump.insight.app_layer.parameter_blocks.ActiveBRProfileBlock;
-import info.nightscout.androidaps.plugins.pump.insight.app_layer.parameter_blocks.BRProfile1Block;
-import info.nightscout.androidaps.plugins.pump.insight.app_layer.parameter_blocks.BRProfileBlock;
-import info.nightscout.androidaps.plugins.pump.insight.app_layer.parameter_blocks.FactoryMinBasalAmountBlock;
-import info.nightscout.androidaps.plugins.pump.insight.app_layer.parameter_blocks.FactoryMinBolusAmountBlock;
-import info.nightscout.androidaps.plugins.pump.insight.app_layer.parameter_blocks.MaxBasalAmountBlock;
-import info.nightscout.androidaps.plugins.pump.insight.app_layer.parameter_blocks.MaxBolusAmountBlock;
-import info.nightscout.androidaps.plugins.pump.insight.app_layer.parameter_blocks.TBROverNotificationBlock;
 import info.nightscout.androidaps.plugins.pump.insight.app_layer.remote_control.CancelBolusMessage;
 import info.nightscout.androidaps.plugins.pump.insight.app_layer.remote_control.CancelTBRMessage;
 import info.nightscout.androidaps.plugins.pump.insight.app_layer.remote_control.ChangeTBRMessage;
@@ -106,20 +96,6 @@ import info.nightscout.androidaps.plugins.pump.insight.connection_service.Insigh
 import info.nightscout.androidaps.plugins.pump.insight.database.InsightBolusID;
 import info.nightscout.androidaps.plugins.pump.insight.database.InsightHistoryOffset;
 import info.nightscout.androidaps.plugins.pump.insight.database.InsightPumpID;
-import info.nightscout.androidaps.plugins.pump.insight.descriptors.ActiveBasalRate;
-import info.nightscout.androidaps.plugins.pump.insight.descriptors.ActiveBolus;
-import info.nightscout.androidaps.plugins.pump.insight.descriptors.ActiveTBR;
-import info.nightscout.androidaps.plugins.pump.insight.descriptors.AlertType;
-import info.nightscout.androidaps.plugins.pump.insight.descriptors.BasalProfile;
-import info.nightscout.androidaps.plugins.pump.insight.descriptors.BasalProfileBlock;
-import info.nightscout.androidaps.plugins.pump.insight.descriptors.BatteryStatus;
-import info.nightscout.androidaps.plugins.pump.insight.descriptors.BolusType;
-import info.nightscout.androidaps.plugins.pump.insight.descriptors.CartridgeStatus;
-import info.nightscout.androidaps.plugins.pump.insight.descriptors.InsightState;
-import info.nightscout.androidaps.plugins.pump.insight.descriptors.OperatingMode;
-import info.nightscout.androidaps.plugins.pump.insight.descriptors.PumpTime;
-import info.nightscout.androidaps.plugins.pump.insight.descriptors.TotalDailyDose;
-import info.nightscout.androidaps.plugins.pump.insight.events.EventLocalInsightUpdateGUI;
 import info.nightscout.androidaps.plugins.pump.insight.exceptions.InsightException;
 import info.nightscout.androidaps.plugins.pump.insight.exceptions.app_layer_errors.AppLayerErrorException;
 import info.nightscout.androidaps.plugins.pump.insight.exceptions.app_layer_errors.NoActiveTBRToCanceLException;
@@ -149,9 +125,8 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
             } else if (binder instanceof InsightAlertService.LocalBinder) {
                 alertService = ((InsightAlertService.LocalBinder) binder).getService();
             }
-            if (connectionService != null && alertService != null) {
-                RxBus.INSTANCE.send(new EventInitializationChanged());
-            }
+            if (connectionService != null && alertService != null)
+                MainApp.bus().post(new EventInitializationChanged());
         }
 
         @Override
@@ -193,8 +168,7 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
                 .mainType(PluginType.PUMP)
                 .description(R.string.description_pump_insight_local)
                 .fragmentClass(LocalInsightFragment.class.getName())
-                .preferencesId(MainApp.instance().getPackageName().equals("info.nightscout.androidaps")
-                        ? R.xml.pref_insight_local_full : R.xml.pref_insight_local_pumpcontrol));
+                .preferencesId(R.xml.pref_insight_local));
 
         pumpDescription = new PumpDescription();
         pumpDescription.setPumpDescription(PumpType.AccuChekInsightBluetooth);
@@ -254,9 +228,7 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
     }
 
     @Override
-    public void switchAllowed(boolean newState, FragmentActivity activity, PluginType type) {
-        confirmPumpPluginActivation(newState, activity, type);
-    }
+    public boolean isBotheredByConstantConnectionRequests() { return false; }
 
     @Override
     public boolean isInitialized() {
@@ -272,9 +244,6 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
     public boolean isBusy() {
         return false;
     }
-
-    @Override
-    public boolean isBotheredByConstantConnectionRequests() { return false; }
 
     @Override
     public boolean isConnected() {
@@ -361,7 +330,7 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
             setDateTimeMessage.setPumpTime(pumpTime);
             connectionService.requestMessage(setDateTimeMessage).await();
             Notification notification = new Notification(Notification.INSIGHT_DATE_TIME_UPDATED, MainApp.gs(R.string.pump_time_updated), Notification.INFO, 60);
-            RxBus.INSTANCE.send(new EventNewNotification(notification));
+            MainApp.bus().post(new EventNewNotification(notification));
         }
     }
 
@@ -429,8 +398,8 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
         }
         lastUpdated = System.currentTimeMillis();
         new Handler(Looper.getMainLooper()).post(() -> {
-            RxBus.INSTANCE.send(new EventLocalInsightUpdateGUI());
-            RxBus.INSTANCE.send(new EventRefreshOverview("LocalInsightPlugin::fetchStatus"));
+            MainApp.bus().post(new EventLocalInsightUpdateGUI());
+            MainApp.bus().post(new EventRefreshOverview("LocalInsightPlugin::fetchStatus"));
         });
     }
 
@@ -438,7 +407,7 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
         maximumBolusAmount = ParameterBlockUtil.readParameterBlock(connectionService, Service.CONFIGURATION, MaxBolusAmountBlock.class).getAmountLimitation();
         maximumBasalAmount = ParameterBlockUtil.readParameterBlock(connectionService, Service.CONFIGURATION, MaxBasalAmountBlock.class).getAmountLimitation();
         minimumBolusAmount = ParameterBlockUtil.readParameterBlock(connectionService, Service.CONFIGURATION, FactoryMinBolusAmountBlock.class).getAmountLimitation();
-        minimumBasalAmount = ParameterBlockUtil.readParameterBlock(connectionService, Service.CONFIGURATION, FactoryMinBasalAmountBlock.class).getAmountLimitation();
+        minimumBasalAmount = ParameterBlockUtil.readParameterBlock(connectionService, Service.CONFIGURATION, FactoryMinBolusAmountBlock.class).getAmountLimitation();
         this.pumpDescription.basalMaximumRate = maximumBasalAmount;
         this.pumpDescription.basalMinimumRate = minimumBasalAmount;
         limitsFetched = true;
@@ -447,11 +416,11 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
     @Override
     public PumpEnactResult setNewBasalProfile(Profile profile) {
         PumpEnactResult result = new PumpEnactResult();
-        RxBus.INSTANCE.send(new EventDismissNotification(Notification.PROFILE_NOT_SET_NOT_INITIALIZED));
+        MainApp.bus().post(new EventDismissNotification(Notification.PROFILE_NOT_SET_NOT_INITIALIZED));
         List<BasalProfileBlock> profileBlocks = new ArrayList<>();
         for (int i = 0; i < profile.getBasalValues().length; i++) {
-            Profile.ProfileValue basalValue = profile.getBasalValues()[i];
-            Profile.ProfileValue nextValue = null;
+            Profile.BasalValue basalValue = profile.getBasalValues()[i];
+            Profile.BasalValue nextValue = null;
             if (profile.getBasalValues().length > i + 1)
                 nextValue = profile.getBasalValues()[i + 1];
             BasalProfileBlock profileBlock = new BasalProfileBlock();
@@ -467,9 +436,9 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
             BRProfileBlock profileBlock = new BRProfile1Block();
             profileBlock.setProfileBlocks(profileBlocks);
             ParameterBlockUtil.writeConfigurationBlock(connectionService, profileBlock);
-            RxBus.INSTANCE.send(new EventDismissNotification(Notification.FAILED_UDPATE_PROFILE));
+            MainApp.bus().post(new EventDismissNotification(Notification.FAILED_UDPATE_PROFILE));
             Notification notification = new Notification(Notification.PROFILE_SET_OK, MainApp.gs(R.string.profile_set_ok), Notification.INFO, 60);
-            RxBus.INSTANCE.send(new EventNewNotification(notification));
+            MainApp.bus().post(new EventNewNotification(notification));
             result.success = true;
             result.enacted = true;
             result.comment = MainApp.gs(R.string.virtualpump_resultok);
@@ -481,17 +450,17 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
         } catch (AppLayerErrorException e) {
             log.info("Exception while setting profile: " + e.getClass().getCanonicalName() + " (" + e.getErrorCode() + ")");
             Notification notification = new Notification(Notification.FAILED_UDPATE_PROFILE, MainApp.gs(R.string.failedupdatebasalprofile), Notification.URGENT);
-            RxBus.INSTANCE.send(new EventNewNotification(notification));
+            MainApp.bus().post(new EventNewNotification(notification));
             result.comment = ExceptionTranslator.getString(e);
         } catch (InsightException e) {
             log.info("Exception while setting profile: " + e.getClass().getCanonicalName());
             Notification notification = new Notification(Notification.FAILED_UDPATE_PROFILE, MainApp.gs(R.string.failedupdatebasalprofile), Notification.URGENT);
-            RxBus.INSTANCE.send(new EventNewNotification(notification));
+            MainApp.bus().post(new EventNewNotification(notification));
             result.comment = ExceptionTranslator.getString(e);
         } catch (Exception e) {
             log.error("Exception while setting profile", e);
             Notification notification = new Notification(Notification.FAILED_UDPATE_PROFILE, MainApp.gs(R.string.failedupdatebasalprofile), Notification.URGENT);
-            RxBus.INSTANCE.send(new EventNewNotification(notification));
+            MainApp.bus().post(new EventNewNotification(notification));
             result.comment = ExceptionTranslator.getString(e);
         }
         return result;
@@ -504,8 +473,8 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
         if (activeBasalProfile != BasalProfile.PROFILE_1) return false;
         for (int i = 0; i < profileBlocks.size(); i++) {
             BasalProfileBlock profileBlock = profileBlocks.get(i);
-            Profile.ProfileValue basalValue = profile.getBasalValues()[i];
-            Profile.ProfileValue nextValue = null;
+            Profile.BasalValue basalValue = profile.getBasalValues()[i];
+            Profile.BasalValue nextValue = null;
             if (profile.getBasalValues().length > i + 1)
                 nextValue = profile.getBasalValues()[i + 1];
             if (profileBlock.getDuration() * 60 != (nextValue != null ? nextValue.timeAsSeconds : 24 * 60 * 60) - basalValue.timeAsSeconds)
@@ -560,11 +529,11 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
                 result.enacted = true;
                 Treatment t = new Treatment();
                 t.isSMB = detailedBolusInfo.isSMB;
-                final EventOverviewBolusProgress bolusingEvent = EventOverviewBolusProgress.INSTANCE;
-                bolusingEvent.setT(t);
-                bolusingEvent.setStatus(MainApp.gs(R.string.insight_delivered, 0d, insulin));
-                bolusingEvent.setPercent(0);
-                RxBus.INSTANCE.send(bolusingEvent);
+                final EventOverviewBolusProgress bolusingEvent = EventOverviewBolusProgress.getInstance();
+                bolusingEvent.t = t;
+                bolusingEvent.status = MainApp.gs(R.string.insight_delivered, 0d, insulin);
+                bolusingEvent.percent = 0;
+                MainApp.bus().post(bolusingEvent);
                 int trials = 0;
                 InsightBolusID insightBolusID = new InsightBolusID();
                 insightBolusID.bolusID = bolusID;
@@ -591,18 +560,18 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
                     }
                     if (activeBolus != null) {
                         trials = -1;
-                        int percentBefore = bolusingEvent.getPercent();
-                        bolusingEvent.setPercent((int) (100D / activeBolus.getInitialAmount() * (activeBolus.getInitialAmount() - activeBolus.getRemainingAmount())));
-                        bolusingEvent.setStatus(MainApp.gs(R.string.insight_delivered, activeBolus.getInitialAmount() - activeBolus.getRemainingAmount(), activeBolus.getInitialAmount()));
-                        if (percentBefore != bolusingEvent.getPercent())
-                            RxBus.INSTANCE.send(bolusingEvent);
+                        int percentBefore = bolusingEvent.percent;
+                        bolusingEvent.percent = (int) (100D / activeBolus.getInitialAmount() * (activeBolus.getInitialAmount() - activeBolus.getRemainingAmount()));
+                        bolusingEvent.status = MainApp.gs(R.string.insight_delivered, activeBolus.getInitialAmount() - activeBolus.getRemainingAmount(), activeBolus.getInitialAmount());
+                        if (percentBefore != bolusingEvent.percent)
+                            MainApp.bus().post(bolusingEvent);
                     } else {
                         synchronized ($bolusLock) {
                             if (bolusCancelled || trials == -1 || trials++ >= 5) {
                                 if (!bolusCancelled) {
-                                    bolusingEvent.setStatus(MainApp.gs(R.string.insight_delivered, insulin, insulin));
-                                    bolusingEvent.setPercent(100);
-                                    RxBus.INSTANCE.send(bolusingEvent);
+                                    bolusingEvent.status = MainApp.gs(R.string.insight_delivered, insulin, insulin);
+                                    bolusingEvent.percent = 100;
+                                    MainApp.bus().post(bolusingEvent);
                                 }
                                 break;
                             }
@@ -878,6 +847,7 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
                         if (extendedBolus != null) {
                             extendedBolus.durationInMinutes = (int) ((System.currentTimeMillis() - extendedBolus.date) / 60000);
                             if (extendedBolus.durationInMinutes <= 0) {
+                                ;
                                 final String _id = extendedBolus._id;
                                 if (NSUpload.isIdValid(_id))
                                     NSUpload.removeCareportalEntryFromNS(_id);
@@ -977,18 +947,8 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
     }
 
     @Override
-    public ManufacturerType manufacturer() {
-        return ManufacturerType.Roche;
-    }
-
-    @Override
-    public PumpType model() {
-        return PumpType.AccuChekInsightBluetooth;
-    }
-
-    @Override
-    public String serialNumber() {
-        if (connectionService == null || alertService == null) return "Unknown";
+    public String deviceID() {
+        if (connectionService == null || alertService == null) return null;
         return connectionService.getPumpSystemIdentification().getSerialNumber();
     }
 
@@ -1170,7 +1130,7 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
         } catch (Exception e) {
             log.error("Exception while reading history", e);
         }
-        new Handler(Looper.getMainLooper()).post(() -> RxBus.INSTANCE.send(new EventRefreshOverview("LocalInsightPlugin::readHistory")));
+        new Handler(Looper.getMainLooper()).post(() -> MainApp.bus().post(new EventRefreshOverview("LocalInsightPlugin::readHistory")));
     }
 
     private void processHistoryEvents(String serial, List<HistoryEvent> historyEvents) {
@@ -1592,7 +1552,7 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
     public void onStateChanged(InsightState state) {
         if (state == InsightState.CONNECTED) {
             statusLoaded = false;
-            new Handler(Looper.getMainLooper()).post(() -> RxBus.INSTANCE.send(new EventDismissNotification(Notification.INSIGHT_TIMEOUT_DURING_HANDSHAKE)));
+            new Handler(Looper.getMainLooper()).post(() -> MainApp.bus().post(new EventDismissNotification(Notification.INSIGHT_TIMEOUT_DURING_HANDSHAKE)));
         } else if (state == InsightState.NOT_PAIRED) {
             connectionService.withdrawConnectionRequest(this);
             statusLoaded = false;
@@ -1605,9 +1565,9 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
             activeTBR = null;
             activeBoluses = null;
             tbrOverNotificationBlock = null;
-            new Handler(Looper.getMainLooper()).post(() -> RxBus.INSTANCE.send(new EventRefreshOverview("LocalInsightPlugin::onStateChanged")));
+            new Handler(Looper.getMainLooper()).post(() -> MainApp.bus().post(new EventRefreshOverview("LocalInsightPlugin::onStateChanged")));
         }
-        new Handler(Looper.getMainLooper()).post(() -> RxBus.INSTANCE.send(new EventLocalInsightUpdateGUI()));
+        new Handler(Looper.getMainLooper()).post(() -> MainApp.bus().post(new EventLocalInsightUpdateGUI()));
     }
 
     @Override
@@ -1618,17 +1578,11 @@ public class LocalInsightPlugin extends PluginBase implements PumpInterface, Con
     @Override
     public void onTimeoutDuringHandshake() {
         Notification notification = new Notification(Notification.INSIGHT_TIMEOUT_DURING_HANDSHAKE, MainApp.gs(R.string.timeout_during_handshake), Notification.URGENT);
-        new Handler(Looper.getMainLooper()).post(() -> RxBus.INSTANCE.send(new EventNewNotification(notification)));
+        new Handler(Looper.getMainLooper()).post(() -> MainApp.bus().post(new EventNewNotification(notification)));
     }
 
     @Override
     public boolean canHandleDST() {
         return true;
     }
-
-    @Override
-    public void timeDateOrTimeZoneChanged() {
-
-    }
-
 }

@@ -17,7 +17,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.preference.PreferenceManager;
-import androidx.annotation.NonNull;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -316,11 +316,11 @@ public class WatchUpdaterService extends WearableListenerService implements Goog
         }
 
         if (lowLine < 1) {
-            lowLine = OverviewPlugin.INSTANCE.getBgTargetLow();
+            lowLine = OverviewPlugin.bgTargetLow;
         }
 
         if (highLine < 1) {
-            highLine = OverviewPlugin.INSTANCE.getBgTargetHigh();
+            highLine = OverviewPlugin.bgTargetHigh;
         }
 
         long sgvLevel = 0l;

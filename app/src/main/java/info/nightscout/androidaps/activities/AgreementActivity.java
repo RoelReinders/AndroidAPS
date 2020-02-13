@@ -11,13 +11,13 @@ import info.nightscout.androidaps.MainActivity;
 import info.nightscout.androidaps.R;
 import info.nightscout.androidaps.utils.SP;
 
-public class AgreementActivity extends NoSplashActivity {
+public class AgreementActivity extends Activity {
     boolean IUnderstand;
     CheckBox agreeCheckBox;
     Button saveButton;
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_agreement);
         IUnderstand = SP.getBoolean(R.string.key_i_understand, false);

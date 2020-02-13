@@ -24,7 +24,6 @@ public enum PumpCapability {
     InsightCapabilities(Bolus, ExtendedBolus, TempBasal, BasalProfileSet, Refill,TDD,BasalRate30min), //
     OmnipyOmnipodCapabilities(Bolus, TempBasal, BasalRate30min),
 
-    MedtronicCapabilities(Bolus, TempBasal, BasalProfileSet, Refill, TDD), //
 
     // BasalRates (separately grouped)
     BasalRate_Duration15minAllowed, //

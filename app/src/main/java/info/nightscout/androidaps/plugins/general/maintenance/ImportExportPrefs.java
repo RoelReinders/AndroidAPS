@@ -8,9 +8,9 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Environment;
 import android.preference.PreferenceManager;
-import androidx.core.app.ActivityCompat;
-import androidx.fragment.app.Fragment;
-import androidx.core.content.ContextCompat;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +28,6 @@ import info.nightscout.androidaps.MainApp;
 import info.nightscout.androidaps.R;
 import info.nightscout.androidaps.events.EventAppExit;
 import info.nightscout.androidaps.logging.L;
-import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.utils.OKDialog;
 import info.nightscout.androidaps.utils.ToastUtils;
 
@@ -137,7 +136,7 @@ public class ImportExportPrefs {
                         OKDialog.show(context, MainApp.gs(R.string.setting_imported), MainApp.gs(R.string.restartingapp), () -> {
                             log.debug("Exiting");
                             MainApp.instance().stopKeepAliveService();
-                            RxBus.INSTANCE.send(new EventAppExit());
+                            MainApp.bus().post(new EventAppExit());
                             MainApp.closeDbHelper();
                             if (context instanceof Activity) {
                                 ((Activity)context).finish();

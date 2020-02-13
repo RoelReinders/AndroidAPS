@@ -47,6 +47,8 @@ public class DanaRS_Packet {
         return null;
     }
 
+    ;
+
     // STATIC FUNCTIONS
 
     public static int getCommand(byte[] data) {
@@ -56,9 +58,6 @@ public class DanaRS_Packet {
     }
 
     public void handleMessage(byte[] data) {
-    }
-
-    public void handleMessageNotReceived() {
     }
 
     public String getFriendlyName() {

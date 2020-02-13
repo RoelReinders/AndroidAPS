@@ -2,8 +2,8 @@ package info.nightscout.androidaps.plugins.general.wear;
 
 import android.app.NotificationManager;
 import android.content.Context;
-
-import androidx.annotation.NonNull;
+import android.os.HandlerThread;
+import android.support.annotation.NonNull;
 
 import java.text.DateFormat;
 import java.text.DecimalFormat;
@@ -31,15 +31,15 @@ import info.nightscout.androidaps.interfaces.APSInterface;
 import info.nightscout.androidaps.interfaces.Constraint;
 import info.nightscout.androidaps.interfaces.PluginBase;
 import info.nightscout.androidaps.interfaces.PumpInterface;
-import info.nightscout.androidaps.plugins.aps.loop.APSResult;
-import info.nightscout.androidaps.plugins.aps.loop.LoopPlugin;
-import info.nightscout.androidaps.plugins.bus.RxBus;
+import info.nightscout.androidaps.plugins.general.actions.dialogs.FillDialog;
+import info.nightscout.androidaps.plugins.general.careportal.Dialogs.NewNSTreatmentDialog;
 import info.nightscout.androidaps.plugins.configBuilder.ConfigBuilderPlugin;
 import info.nightscout.androidaps.plugins.configBuilder.ProfileFunctions;
-import info.nightscout.androidaps.plugins.general.careportal.Dialogs.NewNSTreatmentDialog;
-import info.nightscout.androidaps.plugins.general.overview.events.EventDismissNotification;
 import info.nightscout.androidaps.plugins.iob.iobCobCalculator.CobInfo;
 import info.nightscout.androidaps.plugins.iob.iobCobCalculator.IobCobCalculatorPlugin;
+import info.nightscout.androidaps.plugins.aps.loop.APSResult;
+import info.nightscout.androidaps.plugins.aps.loop.LoopPlugin;
+import info.nightscout.androidaps.plugins.general.overview.events.EventDismissNotification;
 import info.nightscout.androidaps.plugins.pump.danaR.DanaRPlugin;
 import info.nightscout.androidaps.plugins.pump.danaR.DanaRPump;
 import info.nightscout.androidaps.plugins.pump.danaRKorean.DanaRKoreanPlugin;
@@ -68,6 +68,12 @@ public class ActionStringHandler {
     private static long lastSentTimestamp = 0;
     private static String lastConfirmActionString = null;
     private static BolusWizard lastBolusWizard = null;
+
+    private static HandlerThread handlerThread = new HandlerThread(FillDialog.class.getSimpleName());
+
+    static {
+        handlerThread.start();
+    }
 
     public synchronized static void handleInitiate(String actionstring) {
 
@@ -201,7 +207,6 @@ public class ActionStringHandler {
             int percentage = Integer.parseInt(act[2]);
 
             Profile profile = ProfileFunctions.getInstance().getProfile();
-            String profileName = ProfileFunctions.getInstance().getProfileName();
             if (profile == null) {
                 sendError("No profile found!");
                 return;
@@ -214,46 +219,52 @@ public class ActionStringHandler {
             }
 
             CobInfo cobInfo = IobCobCalculatorPlugin.getPlugin().getCobInfo(false, "Wizard wear");
-            if (useCOB && (cobInfo == null || cobInfo.displayCob == null)) {
+            if (useCOB && (cobInfo == null ||  cobInfo.displayCob == null)) {
                 sendError("Unknown COB! BG reading missing or recent app restart?");
                 return;
             }
 
             DecimalFormat format = new DecimalFormat("0.00");
             DecimalFormat formatInt = new DecimalFormat("0");
-            BolusWizard bolusWizard = new BolusWizard(profile, profileName, TreatmentsPlugin.getPlugin().getTempTargetFromHistory(),
-                    carbsAfterConstraints, cobInfo.displayCob, bgReading.valueToUnits(profile.getUnits()),
-                    0d, percentage, useBG, useCOB, useBolusIOB, useBasalIOB, false, useTT, useTrend);
+            BolusWizard bolusWizard = new BolusWizard();
+            bolusWizard.doCalc(profile, useTT ? TreatmentsPlugin.getPlugin().getTempTargetFromHistory() : null,
+                    carbsAfterConstraints, useCOB?cobInfo.displayCob:0d, useBG ? bgReading.valueToUnits(profile.getUnits()) : 0d,
+                    0d, percentage, useBolusIOB, useBasalIOB, false, useTrend);
 
-            if (Math.abs(bolusWizard.getInsulinAfterConstraints() - bolusWizard.getCalculatedTotalInsulin()) >= 0.01) {
+            Double insulinAfterConstraints = MainApp.getConstraintChecker().applyBolusConstraints(new Constraint<>(bolusWizard.calculatedTotalInsulin)).value();
+            if (Math.abs(insulinAfterConstraints - bolusWizard.calculatedTotalInsulin) >= 0.01) {
                 sendError("Insulin constraint violation!" +
-                        "\nCannot deliver " + format.format(bolusWizard.getCalculatedTotalInsulin()) + "!");
+                        "\nCannot deliver " + format.format(bolusWizard.calculatedTotalInsulin) + "!");
                 return;
             }
 
-            if (bolusWizard.getCalculatedTotalInsulin() <= 0 && bolusWizard.getCarbs() <= 0) {
+
+            if (bolusWizard.calculatedTotalInsulin < 0) {
+                bolusWizard.calculatedTotalInsulin = 0d;
+            }
+
+            if (bolusWizard.calculatedTotalInsulin <= 0 && bolusWizard.carbs <= 0) {
                 rAction = "info";
                 rTitle = "INFO";
             } else {
                 rAction = actionstring;
             }
-            rMessage += "Carbs: " + bolusWizard.getCarbs() + "g";
-            rMessage += "\nBolus: " + format.format(bolusWizard.getCalculatedTotalInsulin()) + "U";
+            rMessage += "Carbs: " + bolusWizard.carbs + "g";
+            rMessage += "\nBolus: " + format.format(bolusWizard.calculatedTotalInsulin) + "U";
             rMessage += "\n_____________";
-            rMessage += "\nCalc (IC:" + DecimalFormatter.to1Decimal(bolusWizard.getIc()) + ", " + "ISF:" + DecimalFormatter.to1Decimal(bolusWizard.getSens()) + "): ";
-            rMessage += "\nFrom Carbs: " + format.format(bolusWizard.getInsulinFromCarbs()) + "U";
+            rMessage += "\nCalc (IC:" + DecimalFormatter.to1Decimal(bolusWizard.ic) + ", " + "ISF:" + DecimalFormatter.to1Decimal(bolusWizard.sens) + "): ";
+            rMessage += "\nFrom Carbs: " + format.format(bolusWizard.insulinFromCarbs) + "U";
             if (useCOB)
-                rMessage += "\nFrom" + formatInt.format(cobInfo.displayCob) + "g COB : " + format.format(bolusWizard.getInsulinFromCOB()) + "U";
-            if (useBG)
-                rMessage += "\nFrom BG: " + format.format(bolusWizard.getInsulinFromBG()) + "U";
+                rMessage += "\nFrom" + formatInt.format(cobInfo.displayCob) + "g COB : " + format.format(bolusWizard.insulinFromCOB) + "U";
+            if (useBG) rMessage += "\nFrom BG: " + format.format(bolusWizard.insulinFromBG) + "U";
             if (useBolusIOB)
-                rMessage += "\nBolus IOB: " + format.format(bolusWizard.getInsulinFromBolusIOB()) + "U";
+                rMessage += "\nBolus IOB: " + format.format(bolusWizard.insulingFromBolusIOB) + "U";
             if (useBasalIOB)
-                rMessage += "\nBasal IOB: " + format.format(bolusWizard.getInsulinFromBasalsIOB()) + "U";
+                rMessage += "\nBasal IOB: " + format.format(bolusWizard.insulingFromBasalsIOB) + "U";
             if (useTrend)
-                rMessage += "\nFrom 15' trend: " + format.format(bolusWizard.getInsulinFromTrend()) + "U";
+                rMessage += "\nFrom 15' trend: " + format.format(bolusWizard.insulinFromTrend) + "U";
             if (percentage != 100) {
-                rMessage += "\nPercentage: " + format.format(bolusWizard.getTotalBeforePercentageAdjustment()) + "U * " + percentage + "% -> ~" + format.format(bolusWizard.getCalculatedTotalInsulin()) + "U";
+                rMessage += "\nPercentage: " + format.format(bolusWizard.totalBeforePercentageAdjustment) + "U * " + percentage + "% -> ~" + format.format(bolusWizard.calculatedTotalInsulin) + "U";
             }
 
             lastBolusWizard = bolusWizard;
@@ -328,17 +339,17 @@ public class ActionStringHandler {
             int carbs = SafeParse.stringToInt(act[1]);
             int starttime = SafeParse.stringToInt(act[2]);
             int duration = SafeParse.stringToInt(act[3]);
-            long starttimestamp = System.currentTimeMillis() + starttime * 60 * 1000;
+            long starttimestamp = System.currentTimeMillis() + starttime*60*1000;
             Integer carbsAfterConstraints = MainApp.getConstraintChecker().applyCarbsConstraints(new Constraint<>(carbs)).value();
             rMessage += MainApp.gs(R.string.carbs) + ": " + carbsAfterConstraints + "g";
-            rMessage += "\n" + MainApp.gs(R.string.time) + ": " + DateUtil.timeString(starttimestamp);
+            rMessage += "\n" + MainApp.gs(R.string.time) + ": " +  DateUtil.timeString(starttimestamp);
             rMessage += "\n" + MainApp.gs(R.string.duration) + ": " + duration + "h";
 
 
-            if ((carbsAfterConstraints - carbs != 0)) {
+            if ( (carbsAfterConstraints - carbs != 0)) {
                 rMessage += "\n" + MainApp.gs(R.string.constraintapllied);
             }
-            if (carbsAfterConstraints <= 0) {
+            if(carbsAfterConstraints <= 0){
                 sendError("Carbs = 0! No action taken!");
                 return;
             }
@@ -437,11 +448,11 @@ public class ActionStringHandler {
 
     public static boolean isOldData(List<TDD> historyList) {
         Object activePump = ConfigBuilderPlugin.getPlugin().getActivePump();
-        PumpInterface dana = DanaRPlugin.getPlugin();
-        PumpInterface danaRS = DanaRSPlugin.getPlugin();
-        PumpInterface danaV2 = DanaRv2Plugin.getPlugin();
-        PumpInterface danaKorean = DanaRKoreanPlugin.getPlugin();
-        PumpInterface insight = LocalInsightPlugin.getPlugin();
+        PumpInterface dana = MainApp.getSpecificPlugin(DanaRPlugin.class);
+        PumpInterface danaRS = MainApp.getSpecificPlugin(DanaRSPlugin.class);
+        PumpInterface danaV2 = MainApp.getSpecificPlugin(DanaRv2Plugin.class);
+        PumpInterface danaKorean = MainApp.getSpecificPlugin(DanaRKoreanPlugin.class);
+        PumpInterface insight = MainApp.getSpecificPlugin(LocalInsightPlugin.class);
 
         boolean startsYesterday = activePump == dana || activePump == danaRS || activePump == danaV2 || activePump == danaKorean || activePump == insight;
 
@@ -617,7 +628,7 @@ public class ActionStringHandler {
             if (lastBolusWizard != null) {
                 //use last calculation as confirmed string matches
 
-                doBolus(lastBolusWizard.getCalculatedTotalInsulin(), lastBolusWizard.getCarbs());
+                doBolus(lastBolusWizard.calculatedTotalInsulin, lastBolusWizard.carbs);
                 lastBolusWizard = null;
             }
         } else if ("bolus".equals(act[0])) {
@@ -628,14 +639,14 @@ public class ActionStringHandler {
             int timeshift = SafeParse.stringToInt(act[1]);
             int percentage = SafeParse.stringToInt(act[2]);
             setCPP(timeshift, percentage);
-        } else if ("ecarbs".equals(act[0])) {
+        }  else if ("ecarbs".equals(act[0])) {
             int carbs = SafeParse.stringToInt(act[1]);
             long starttime = SafeParse.stringToLong(act[2]);
             int duration = SafeParse.stringToInt(act[3]);
 
             doECarbs(carbs, starttime, duration);
         } else if ("dismissoverviewnotification".equals(act[0])) {
-            RxBus.INSTANCE.send(new EventDismissNotification(SafeParse.stringToInt(act[1])));
+            MainApp.bus().post(new EventDismissNotification(SafeParse.stringToInt(act[1])));
         } else if ("changeRequest".equals(act[0])) {
             LoopPlugin.getPlugin().acceptChangeRequest();
             NotificationManager notificationManager =

@@ -68,6 +68,7 @@ public class NewNSTreatmentDialogTest {
         AAPSMocker.mockStrings();
         PowerMockito.mockStatic(NSUpload.class);
         AAPSMocker.mockTreatmentService();
+        AAPSMocker.mockBus();
         AAPSMocker.mockDatabaseHelper();
 
         NSProfilePlugin profilePlugin = NSProfilePlugin.getPlugin();

@@ -13,6 +13,8 @@ import info.nightscout.androidaps.MainApp;
 import info.nightscout.androidaps.interfaces.PluginType;
 import info.nightscout.androidaps.utils.SP;
 
+import static org.powermock.api.mockito.PowerMockito.mock;
+
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({MainApp.class, SP.class})
 public class ConfigBuilderPluginTest {
@@ -27,6 +29,7 @@ public class ConfigBuilderPluginTest {
     public void onStartTest() {
         ConfigBuilderPlugin configBuilderPlugin = ConfigBuilderPlugin.getPlugin();
         configBuilderPlugin.setPluginEnabled(PluginType.GENERAL, true);
+        Assert.assertEquals(true, ((AAPSMocker.MockedBus) MainApp.bus()).registered);
     }
 
     @Test
@@ -34,6 +37,7 @@ public class ConfigBuilderPluginTest {
         ConfigBuilderPlugin configBuilderPlugin = ConfigBuilderPlugin.getPlugin();
         configBuilderPlugin.setPluginEnabled(PluginType.GENERAL, true);
         configBuilderPlugin.setPluginEnabled(PluginType.GENERAL, false);
+        Assert.assertEquals(false, ((AAPSMocker.MockedBus) MainApp.bus()).registered);
     }
 
     @Before
@@ -41,6 +45,7 @@ public class ConfigBuilderPluginTest {
         AAPSMocker.mockMainApp();
         AAPSMocker.mockApplicationContext();
         AAPSMocker.mockSP();
+        AAPSMocker.prepareMockedBus();
     }
 
 

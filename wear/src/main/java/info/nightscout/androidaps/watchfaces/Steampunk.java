@@ -1,7 +1,7 @@
 package info.nightscout.androidaps.watchfaces;
 
 import android.content.Intent;
-import androidx.core.content.ContextCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.view.LayoutInflater;
 import android.view.animation.Animation;

@@ -13,6 +13,7 @@ import android.os.SystemClock;
 import com.google.common.base.Charsets;
 import com.google.common.hash.Hashing;
 import com.j256.ormlite.dao.CloseableIterator;
+import com.squareup.otto.Subscribe;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -34,7 +35,6 @@ import info.nightscout.androidaps.events.EventConfigBuilderChange;
 import info.nightscout.androidaps.events.EventPreferenceChange;
 import info.nightscout.androidaps.interfaces.PluginType;
 import info.nightscout.androidaps.logging.L;
-import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.general.nsclient.NSClientPlugin;
 import info.nightscout.androidaps.plugins.general.nsclient.UploadQueue;
 import info.nightscout.androidaps.plugins.general.nsclient.acks.NSAddAck;
@@ -68,15 +68,12 @@ import info.nightscout.androidaps.utils.FabricPrivacy;
 import info.nightscout.androidaps.utils.JsonHelper;
 import info.nightscout.androidaps.utils.SP;
 import info.nightscout.androidaps.utils.T;
-import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.schedulers.Schedulers;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 
 public class NSClientService extends Service {
     private static Logger log = LoggerFactory.getLogger(L.NSCLIENT);
-    private CompositeDisposable disposable = new CompositeDisposable();
 
     static public PowerManager.WakeLock mWakeLock;
     private IBinder mBinder = new NSClientService.LocalBinder();
@@ -115,6 +112,7 @@ public class NSClientService extends Service {
     private int WATCHDOG_MAXCONNECTIONS = 5;
 
     public NSClientService() {
+        registerBus();
         if (handler == null) {
             HandlerThread handlerThread = new HandlerThread(NSClientService.class.getSimpleName() + "Handler");
             handlerThread.start();
@@ -130,113 +128,12 @@ public class NSClientService extends Service {
     public void onCreate() {
         super.onCreate();
         mWakeLock.acquire();
-        disposable.add(RxBus.INSTANCE
-                .toObservable(EventConfigBuilderChange.class)
-                .observeOn(Schedulers.io())
-                .subscribe(event -> {
-                    if (nsEnabled != NSClientPlugin.getPlugin().isEnabled(PluginType.GENERAL)) {
-                        latestDateInReceivedData = 0;
-                        destroy();
-                        initialize();
-                    }
-                }, FabricPrivacy::logException)
-        );
-        disposable.add(RxBus.INSTANCE
-                .toObservable(EventPreferenceChange.class)
-                .observeOn(Schedulers.io())
-                .subscribe(event -> {
-                    if (event.isChanged(R.string.key_nsclientinternal_url) ||
-                            event.isChanged(R.string.key_nsclientinternal_api_secret) ||
-                            event.isChanged(R.string.key_nsclientinternal_paused)
-                    ) {
-                        latestDateInReceivedData = 0;
-                        destroy();
-                        initialize();
-                    }
-                }, FabricPrivacy::logException)
-        );
-        disposable.add(RxBus.INSTANCE
-                .toObservable(EventAppExit.class)
-                .observeOn(Schedulers.io())
-                .subscribe(event -> {
-                    if (L.isEnabled(L.NSCLIENT))
-                        log.debug("EventAppExit received");
-                    destroy();
-                    stopSelf();
-                }, FabricPrivacy::logException)
-        );
-        disposable.add(RxBus.INSTANCE
-                .toObservable(EventNSClientRestart.class)
-                .observeOn(Schedulers.io())
-                .subscribe(event -> {
-                    latestDateInReceivedData = 0;
-                    restart();
-                }, FabricPrivacy::logException)
-        );
-        disposable.add(RxBus.INSTANCE
-                .toObservable(NSAuthAck.class)
-                .observeOn(Schedulers.io())
-                .subscribe(event -> processAuthAck(event), FabricPrivacy::logException)
-        );
-        disposable.add(RxBus.INSTANCE
-                .toObservable(NSUpdateAck.class)
-                .observeOn(Schedulers.io())
-                .subscribe(event -> processUpdateAck(event), FabricPrivacy::logException)
-        );
-        disposable.add(RxBus.INSTANCE
-                .toObservable(NSAddAck.class)
-                .observeOn(Schedulers.io())
-                .subscribe(event -> processAddAck(event), FabricPrivacy::logException)
-        );
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        disposable.clear();
         if (mWakeLock.isHeld()) mWakeLock.release();
-    }
-
-    public void processAddAck(NSAddAck ack) {
-        if (ack.nsClientID != null) {
-            uploadQueue.removeID(ack.json);
-            RxBus.INSTANCE.send(new EventNSClientNewLog("DBADD", "Acked " + ack.nsClientID));
-        } else {
-            RxBus.INSTANCE.send(new EventNSClientNewLog("ERROR", "DBADD Unknown response"));
-        }
-    }
-
-    public void processUpdateAck(NSUpdateAck ack) {
-        if (ack.result) {
-            uploadQueue.removeID(ack.action, ack._id);
-            RxBus.INSTANCE.send(new EventNSClientNewLog("DBUPDATE/DBREMOVE", "Acked " + ack._id));
-        } else {
-            RxBus.INSTANCE.send(new EventNSClientNewLog("ERROR", "DBUPDATE/DBREMOVE Unknown response"));
-        }
-    }
-
-    public void processAuthAck(NSAuthAck ack) {
-        String connectionStatus = "Authenticated (";
-        if (ack.read) connectionStatus += "R";
-        if (ack.write) connectionStatus += "W";
-        if (ack.write_treatment) connectionStatus += "T";
-        connectionStatus += ')';
-        isConnected = true;
-        hasWriteAuth = ack.write && ack.write_treatment;
-        RxBus.INSTANCE.send(new EventNSClientStatus(connectionStatus));
-        RxBus.INSTANCE.send(new EventNSClientNewLog("AUTH", connectionStatus));
-        if (!ack.write) {
-            RxBus.INSTANCE.send(new EventNSClientNewLog("ERROR", "Write permission not granted !!!!"));
-        }
-        if (!ack.write_treatment) {
-            RxBus.INSTANCE.send(new EventNSClientNewLog("ERROR", "Write treatment permission not granted !!!!"));
-        }
-        if (!hasWriteAuth) {
-            Notification noperm = new Notification(Notification.NSCLIENT_NO_WRITE_PERMISSION, MainApp.gs(R.string.nowritepermission), Notification.URGENT);
-            RxBus.INSTANCE.send(new EventNewNotification(noperm));
-        } else {
-            RxBus.INSTANCE.send(new EventDismissNotification(Notification.NSCLIENT_NO_WRITE_PERMISSION));
-        }
     }
 
     public class LocalBinder extends Binder {
@@ -256,6 +153,52 @@ public class NSClientService extends Service {
         return START_STICKY;
     }
 
+    private void registerBus() {
+        try {
+            MainApp.bus().unregister(this);
+        } catch (RuntimeException x) {
+            // Ignore
+        }
+        MainApp.bus().register(this);
+    }
+
+    @Subscribe
+    public void onStatusEvent(EventAppExit event) {
+        if (L.isEnabled(L.NSCLIENT))
+            log.debug("EventAppExit received");
+
+        destroy();
+
+        stopSelf();
+    }
+
+    @Subscribe
+    public void onStatusEvent(EventPreferenceChange ev) {
+        if (ev.isChanged(R.string.key_nsclientinternal_url) ||
+                ev.isChanged(R.string.key_nsclientinternal_api_secret) ||
+                ev.isChanged(R.string.key_nsclientinternal_paused)
+                ) {
+            latestDateInReceivedData = 0;
+            destroy();
+            initialize();
+        }
+    }
+
+    @Subscribe
+    public void onStatusEvent(EventConfigBuilderChange ev) {
+        if (nsEnabled != MainApp.getSpecificPlugin(NSClientPlugin.class).isEnabled(PluginType.GENERAL)) {
+            latestDateInReceivedData = 0;
+            destroy();
+            initialize();
+        }
+    }
+
+    @Subscribe
+    public void onStatusEvent(final EventNSClientRestart ev) {
+        latestDateInReceivedData = 0;
+        restart();
+    }
+
     public void initialize() {
         dataCounter = 0;
 
@@ -264,19 +207,19 @@ public class NSClientService extends Service {
         if (!nsAPISecret.equals(""))
             nsAPIhashCode = Hashing.sha1().hashString(nsAPISecret, Charsets.UTF_8).toString();
 
-        RxBus.INSTANCE.send(new EventNSClientStatus("Initializing"));
-        if (!NSClientPlugin.getPlugin().isAllowed()) {
-            RxBus.INSTANCE.send(new EventNSClientNewLog("NSCLIENT", "not allowed"));
-            RxBus.INSTANCE.send(new EventNSClientStatus("Not allowed"));
-        } else if (NSClientPlugin.getPlugin().paused) {
-            RxBus.INSTANCE.send(new EventNSClientNewLog("NSCLIENT", "paused"));
-            RxBus.INSTANCE.send(new EventNSClientStatus("Paused"));
+        MainApp.bus().post(new EventNSClientStatus("Initializing"));
+        if (!MainApp.getSpecificPlugin(NSClientPlugin.class).isAllowed()) {
+            MainApp.bus().post(new EventNSClientNewLog("NSCLIENT", "not allowed"));
+            MainApp.bus().post(new EventNSClientStatus("Not allowed"));
+        } else if (MainApp.getSpecificPlugin(NSClientPlugin.class).paused) {
+            MainApp.bus().post(new EventNSClientNewLog("NSCLIENT", "paused"));
+            MainApp.bus().post(new EventNSClientStatus("Paused"));
         } else if (!nsEnabled) {
-            RxBus.INSTANCE.send(new EventNSClientNewLog("NSCLIENT", "disabled"));
-            RxBus.INSTANCE.send(new EventNSClientStatus("Disabled"));
+            MainApp.bus().post(new EventNSClientNewLog("NSCLIENT", "disabled"));
+            MainApp.bus().post(new EventNSClientStatus("Disabled"));
         } else if (!nsURL.equals("")) {
             try {
-                RxBus.INSTANCE.send(new EventNSClientStatus("Connecting ..."));
+                MainApp.bus().post(new EventNSClientStatus("Connecting ..."));
                 IO.Options opt = new IO.Options();
                 opt.forceNew = true;
                 opt.reconnection = true;
@@ -284,7 +227,7 @@ public class NSClientService extends Service {
                 mSocket.on(Socket.EVENT_CONNECT, onConnect);
                 mSocket.on(Socket.EVENT_DISCONNECT, onDisconnect);
                 mSocket.on(Socket.EVENT_PING, onPing);
-                RxBus.INSTANCE.send(new EventNSClientNewLog("NSCLIENT", "do connect"));
+                MainApp.bus().post(new EventNSClientNewLog("NSCLIENT", "do connect"));
                 mSocket.connect();
                 mSocket.on("dataUpdate", onDataUpdate);
                 mSocket.on("announcement", onAnnouncement);
@@ -292,12 +235,12 @@ public class NSClientService extends Service {
                 mSocket.on("urgent_alarm", onUrgentAlarm);
                 mSocket.on("clear_alarm", onClearAlarm);
             } catch (URISyntaxException | RuntimeException e) {
-                RxBus.INSTANCE.send(new EventNSClientNewLog("NSCLIENT", "Wrong URL syntax"));
-                RxBus.INSTANCE.send(new EventNSClientStatus("Wrong URL syntax"));
+                MainApp.bus().post(new EventNSClientNewLog("NSCLIENT", "Wrong URL syntax"));
+                MainApp.bus().post(new EventNSClientStatus("Wrong URL syntax"));
             }
         } else {
-            RxBus.INSTANCE.send(new EventNSClientNewLog("NSCLIENT", "No NS URL specified"));
-            RxBus.INSTANCE.send(new EventNSClientStatus("Not configured"));
+            MainApp.bus().post(new EventNSClientNewLog("NSCLIENT", "No NS URL specified"));
+            MainApp.bus().post(new EventNSClientStatus("Not configured"));
         }
     }
 
@@ -306,7 +249,7 @@ public class NSClientService extends Service {
         public void call(Object... args) {
             connectCounter++;
             String socketId = mSocket != null ? mSocket.id() : "NULL";
-            RxBus.INSTANCE.send(new EventNSClientNewLog("NSCLIENT", "connect #" + connectCounter + " event. ID: " + socketId));
+            MainApp.bus().post(new EventNSClientNewLog("NSCLIENT", "connect #" + connectCounter + " event. ID: " + socketId));
             if (mSocket != null)
                 sendAuthMessage(new NSAuthAck());
             watchdog();
@@ -323,16 +266,16 @@ public class NSClientService extends Service {
                     reconnections.remove(r);
                 }
             }
-            RxBus.INSTANCE.send(new EventNSClientNewLog("WATCHDOG", "connections in last " + WATCHDOG_INTERVAL_MINUTES + " mins: " + reconnections.size() + "/" + WATCHDOG_MAXCONNECTIONS));
+            MainApp.bus().post(new EventNSClientNewLog("WATCHDOG", "connections in last " + WATCHDOG_INTERVAL_MINUTES + " mins: " + reconnections.size() + "/" + WATCHDOG_MAXCONNECTIONS));
             if (reconnections.size() >= WATCHDOG_MAXCONNECTIONS) {
                 Notification n = new Notification(Notification.NSMALFUNCTION, MainApp.gs(R.string.nsmalfunction), Notification.URGENT);
-                RxBus.INSTANCE.send(new EventNewNotification(n));
-                RxBus.INSTANCE.send(new EventNSClientNewLog("WATCHDOG", "pausing for " + WATCHDOG_RECONNECT_IN + " mins"));
+                MainApp.bus().post(new EventNewNotification(n));
+                MainApp.bus().post(new EventNSClientNewLog("WATCHDOG", "pausing for " + WATCHDOG_RECONNECT_IN + " mins"));
                 NSClientPlugin.getPlugin().pause(true);
-                RxBus.INSTANCE.send(new EventNSClientUpdateGUI());
+                MainApp.bus().post(new EventNSClientUpdateGUI());
                 new Thread(() -> {
                     SystemClock.sleep(T.mins(WATCHDOG_RECONNECT_IN).msecs());
-                    RxBus.INSTANCE.send(new EventNSClientNewLog("WATCHDOG", "reenabling NSClient"));
+                    MainApp.bus().post(new EventNSClientNewLog("WATCHDOG", "reenabling NSClient"));
                     NSClientPlugin.getPlugin().pause(false);
                 }).start();
             }
@@ -344,7 +287,7 @@ public class NSClientService extends Service {
         public void call(Object... args) {
             if (L.isEnabled(L.NSCLIENT))
                 log.debug("disconnect reason: {}", args);
-            RxBus.INSTANCE.send(new EventNSClientNewLog("NSCLIENT", "disconnect event"));
+            MainApp.bus().post(new EventNSClientNewLog("NSCLIENT", "disconnect event"));
         }
     };
 
@@ -359,7 +302,7 @@ public class NSClientService extends Service {
             mSocket.off("urgent_alarm");
             mSocket.off("clear_alarm");
 
-            RxBus.INSTANCE.send(new EventNSClientNewLog("NSCLIENT", "destroy"));
+            MainApp.bus().post(new EventNSClientNewLog("NSCLIENT", "destroy"));
             isConnected = false;
             hasWriteAuth = false;
             mSocket.disconnect();
@@ -380,13 +323,38 @@ public class NSClientService extends Service {
             log.error("Unhandled exception", e);
             return;
         }
-        RxBus.INSTANCE.send(new EventNSClientNewLog("AUTH", "requesting auth"));
+        MainApp.bus().post(new EventNSClientNewLog("AUTH", "requesting auth"));
         if (mSocket != null)
             mSocket.emit("authorize", authMessage, ack);
     }
 
+    @Subscribe
+    public void onStatusEvent(NSAuthAck ack) {
+        String connectionStatus = "Authenticated (";
+        if (ack.read) connectionStatus += "R";
+        if (ack.write) connectionStatus += "W";
+        if (ack.write_treatment) connectionStatus += "T";
+        connectionStatus += ')';
+        isConnected = true;
+        hasWriteAuth = ack.write && ack.write_treatment;
+        MainApp.bus().post(new EventNSClientStatus(connectionStatus));
+        MainApp.bus().post(new EventNSClientNewLog("AUTH", connectionStatus));
+        if (!ack.write) {
+            MainApp.bus().post(new EventNSClientNewLog("ERROR", "Write permission not granted !!!!"));
+        }
+        if (!ack.write_treatment) {
+            MainApp.bus().post(new EventNSClientNewLog("ERROR", "Write treatment permission not granted !!!!"));
+        }
+        if (!hasWriteAuth) {
+            Notification noperm = new Notification(Notification.NSCLIENT_NO_WRITE_PERMISSION, MainApp.gs(R.string.nowritepermission), Notification.URGENT);
+            MainApp.bus().post(new EventNewNotification(noperm));
+        } else {
+            MainApp.bus().post(new EventDismissNotification(Notification.NSCLIENT_NO_WRITE_PERMISSION));
+        }
+    }
+
     public void readPreferences() {
-        nsEnabled = NSClientPlugin.getPlugin().isEnabled(PluginType.GENERAL);
+        nsEnabled = MainApp.getSpecificPlugin(NSClientPlugin.class).isEnabled(PluginType.GENERAL);
         nsURL = SP.getString(R.string.key_nsclientinternal_url, "");
         nsAPISecret = SP.getString(R.string.key_nsclientinternal_api_secret, "");
         nsDevice = SP.getString("careportal_enteredby", "");
@@ -395,7 +363,7 @@ public class NSClientService extends Service {
     private Emitter.Listener onPing = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
-            RxBus.INSTANCE.send(new EventNSClientNewLog("PING", "received"));
+            MainApp.bus().post(new EventNSClientNewLog("PING", "received"));
             // send data if there is something waiting
             resend("Ping received");
         }
@@ -424,7 +392,7 @@ public class NSClientService extends Service {
                 return;
             }
             try {
-                RxBus.INSTANCE.send(new EventNSClientNewLog("ANNOUNCEMENT", JsonHelper.safeGetString(data, "message", "received")));
+                MainApp.bus().post(new EventNSClientNewLog("ANNOUNCEMENT", JsonHelper.safeGetString(data, "message", "received")));
             } catch (Exception e) {
                 FabricPrivacy.logException(e);
                 log.error("Unhandled exception", e);
@@ -451,7 +419,7 @@ public class NSClientService extends Service {
          */
         @Override
         public void call(final Object... args) {
-            RxBus.INSTANCE.send(new EventNSClientNewLog("ALARM", "received"));
+            MainApp.bus().post(new EventNSClientNewLog("ALARM", "received"));
             JSONObject data;
             try {
                 data = (JSONObject) args[0];
@@ -490,7 +458,7 @@ public class NSClientService extends Service {
                 log.error("Unhandled exception", e);
                 return;
             }
-            RxBus.INSTANCE.send(new EventNSClientNewLog("URGENTALARM", "received"));
+            MainApp.bus().post(new EventNSClientNewLog("URGENTALARM", "received"));
             BroadcastUrgentAlarm.handleUrgentAlarm(data, getApplicationContext());
             if (L.isEnabled(L.NSCLIENT))
                 log.debug(data.toString());
@@ -516,7 +484,7 @@ public class NSClientService extends Service {
                 log.error("Unhandled exception", e);
                 return;
             }
-            RxBus.INSTANCE.send(new EventNSClientNewLog("CLEARALARM", "received"));
+            MainApp.bus().post(new EventNSClientNewLog("CLEARALARM", "received"));
             BroadcastClearAlarm.handleClearAlarm(data, getApplicationContext());
             if (L.isEnabled(L.NSCLIENT))
                 log.debug(data.toString());
@@ -541,7 +509,7 @@ public class NSClientService extends Service {
                             // delta means only increment/changes are comming
                             boolean isDelta = data.has("delta");
                             boolean isFull = !isDelta;
-                            RxBus.INSTANCE.send(new EventNSClientNewLog("DATA", "Data packet #" + dataCounter++ + (isDelta ? " delta" : " full")));
+                            MainApp.bus().post(new EventNSClientNewLog("DATA", "Data packet #" + dataCounter++ + (isDelta ? " delta" : " full")));
 
                             if (data.has("profiles")) {
                                 JSONArray profiles = data.getJSONArray("profiles");
@@ -549,7 +517,7 @@ public class NSClientService extends Service {
                                     JSONObject profile = (JSONObject) profiles.get(profiles.length() - 1);
                                     profileStore = new ProfileStore(profile);
                                     broadcastProfile = true;
-                                    RxBus.INSTANCE.send(new EventNSClientNewLog("PROFILE", "profile received"));
+                                    MainApp.bus().post(new EventNSClientNewLog("PROFILE", "profile received"));
                                 }
                             }
 
@@ -559,7 +527,7 @@ public class NSClientService extends Service {
 
                                 if (!status.has("versionNum")) {
                                     if (status.getInt("versionNum") < Config.SUPPORTEDNSVERSION) {
-                                        RxBus.INSTANCE.send(new EventNSClientNewLog("ERROR", "Unsupported Nightscout version !!!!"));
+                                        MainApp.bus().post(new EventNSClientNewLog("ERROR", "Unsupported Nightscout version !!!!"));
                                     }
                                 } else {
                                     nightscoutVersionName = nsSettingsStatus.getVersion();
@@ -584,13 +552,13 @@ public class NSClientService extends Service {
                         }
                      */
                             } else if (!isDelta) {
-                                RxBus.INSTANCE.send(new EventNSClientNewLog("ERROR", "Unsupported Nightscout version !!!!"));
+                                MainApp.bus().post(new EventNSClientNewLog("ERROR", "Unsupported Nightscout version !!!!"));
                             }
 
                             // If new profile received or change detected broadcast it
                             if (broadcastProfile && profileStore != null) {
                                 BroadcastProfile.handleNewTreatment(profileStore, MainApp.instance().getApplicationContext(), isDelta);
-                                RxBus.INSTANCE.send(new EventNSClientNewLog("PROFILE", "broadcasting"));
+                                MainApp.bus().post(new EventNSClientNewLog("PROFILE", "broadcasting"));
                             }
 
                             if (data.has("treatments")) {
@@ -599,7 +567,7 @@ public class NSClientService extends Service {
                                 JSONArray updatedTreatments = new JSONArray();
                                 JSONArray addedTreatments = new JSONArray();
                                 if (treatments.length() > 0)
-                                    RxBus.INSTANCE.send(new EventNSClientNewLog("DATA", "received " + treatments.length() + " treatments"));
+                                    MainApp.bus().post(new EventNSClientNewLog("DATA", "received " + treatments.length() + " treatments"));
                                 for (Integer index = 0; index < treatments.length(); index++) {
                                     JSONObject jsonTreatment = treatments.getJSONObject(index);
                                     NSTreatment treatment = new NSTreatment(jsonTreatment);
@@ -633,7 +601,7 @@ public class NSClientService extends Service {
                             if (data.has("devicestatus")) {
                                 JSONArray devicestatuses = data.getJSONArray("devicestatus");
                                 if (devicestatuses.length() > 0) {
-                                    RxBus.INSTANCE.send(new EventNSClientNewLog("DATA", "received " + devicestatuses.length() + " devicestatuses"));
+                                    MainApp.bus().post(new EventNSClientNewLog("DATA", "received " + devicestatuses.length() + " devicestatuses"));
                                     for (Integer index = 0; index < devicestatuses.length(); index++) {
                                         JSONObject jsonStatus = devicestatuses.getJSONObject(index);
                                         // remove from upload queue if Ack is failing
@@ -648,7 +616,7 @@ public class NSClientService extends Service {
                                 JSONArray updatedFoods = new JSONArray();
                                 JSONArray addedFoods = new JSONArray();
                                 if (foods.length() > 0)
-                                    RxBus.INSTANCE.send(new EventNSClientNewLog("DATA", "received " + foods.length() + " foods"));
+                                    MainApp.bus().post(new EventNSClientNewLog("DATA", "received " + foods.length() + " foods"));
                                 for (Integer index = 0; index < foods.length(); index++) {
                                     JSONObject jsonFood = foods.getJSONObject(index);
 
@@ -678,7 +646,7 @@ public class NSClientService extends Service {
                             if (data.has("mbgs")) {
                                 JSONArray mbgs = data.getJSONArray("mbgs");
                                 if (mbgs.length() > 0)
-                                    RxBus.INSTANCE.send(new EventNSClientNewLog("DATA", "received " + mbgs.length() + " mbgs"));
+                                    MainApp.bus().post(new EventNSClientNewLog("DATA", "received " + mbgs.length() + " mbgs"));
                                 for (Integer index = 0; index < mbgs.length(); index++) {
                                     JSONObject jsonMbg = mbgs.getJSONObject(index);
                                     // remove from upload queue if Ack is failing
@@ -689,7 +657,7 @@ public class NSClientService extends Service {
                             if (data.has("cals")) {
                                 JSONArray cals = data.getJSONArray("cals");
                                 if (cals.length() > 0)
-                                    RxBus.INSTANCE.send(new EventNSClientNewLog("DATA", "received " + cals.length() + " cals"));
+                                    MainApp.bus().post(new EventNSClientNewLog("DATA", "received " + cals.length() + " cals"));
                                 // Retreive actual calibration
                                 for (Integer index = 0; index < cals.length(); index++) {
                                     // remove from upload queue if Ack is failing
@@ -700,10 +668,10 @@ public class NSClientService extends Service {
                             if (data.has("sgvs")) {
                                 JSONArray sgvs = data.getJSONArray("sgvs");
                                 if (sgvs.length() > 0)
-                                    RxBus.INSTANCE.send(new EventNSClientNewLog("DATA", "received " + sgvs.length() + " sgvs"));
+                                    MainApp.bus().post(new EventNSClientNewLog("DATA", "received " + sgvs.length() + " sgvs"));
                                 for (Integer index = 0; index < sgvs.length(); index++) {
                                     JSONObject jsonSgv = sgvs.getJSONObject(index);
-                                    // RxBus.INSTANCE.send(new EventNSClientNewLog("DATA", "svg " + sgvs.getJSONObject(index).toString());
+                                    // MainApp.bus().post(new EventNSClientNewLog("DATA", "svg " + sgvs.getJSONObject(index).toString());
                                     NSSgv sgv = new NSSgv(jsonSgv);
                                     // Handle new sgv here
                                     // remove from upload queue if Ack is failing
@@ -718,15 +686,15 @@ public class NSClientService extends Service {
                                 if ((System.currentTimeMillis() - latestDateInReceivedData) / (60 * 1000L) < 15L)
                                     lessThan15MinAgo = true;
                                 if (Notification.isAlarmForStaleData() && lessThan15MinAgo) {
-                                    RxBus.INSTANCE.send(new EventDismissNotification(Notification.NSALARM));
+                                    MainApp.bus().post(new EventDismissNotification(Notification.NSALARM));
                                 }
                                 BroadcastSgvs.handleNewSgv(sgvs, MainApp.instance().getApplicationContext(), isDelta);
                             }
-                            RxBus.INSTANCE.send(new EventNSClientNewLog("LAST", DateUtil.dateAndTimeString(latestDateInReceivedData)));
+                            MainApp.bus().post(new EventNSClientNewLog("LAST", DateUtil.dateAndTimeString(latestDateInReceivedData)));
                         } catch (JSONException e) {
                             log.error("Unhandled exception", e);
                         }
-                        //RxBus.INSTANCE.send(new EventNSClientNewLog("NSCLIENT", "onDataUpdate end");
+                        //MainApp.bus().post(new EventNSClientNewLog("NSCLIENT", "onDataUpdate end");
                     } finally {
                         if (wakeLock.isHeld()) wakeLock.release();
                     }
@@ -744,7 +712,7 @@ public class NSClientService extends Service {
             message.put("_id", dbr._id);
             message.put("data", new JSONObject(dbr.data));
             mSocket.emit("dbUpdate", message, ack);
-            RxBus.INSTANCE.send(new EventNSClientNewLog("DBUPDATE " + dbr.collection, "Sent " + dbr._id));
+            MainApp.bus().post(new EventNSClientNewLog("DBUPDATE " + dbr.collection, "Sent " + dbr._id));
         } catch (JSONException e) {
             log.error("Unhandled exception", e);
         }
@@ -758,7 +726,7 @@ public class NSClientService extends Service {
             message.put("_id", dbr._id);
             message.put("data", new JSONObject(dbr.data));
             mSocket.emit("dbUpdateUnset", message, ack);
-            RxBus.INSTANCE.send(new EventNSClientNewLog("DBUPDATEUNSET " + dbr.collection, "Sent " + dbr._id));
+            MainApp.bus().post(new EventNSClientNewLog("DBUPDATEUNSET " + dbr.collection, "Sent " + dbr._id));
         } catch (JSONException e) {
             log.error("Unhandled exception", e);
         }
@@ -771,9 +739,19 @@ public class NSClientService extends Service {
             message.put("collection", dbr.collection);
             message.put("_id", dbr._id);
             mSocket.emit("dbRemove", message, ack);
-            RxBus.INSTANCE.send(new EventNSClientNewLog("DBREMOVE " + dbr.collection, "Sent " + dbr._id));
+            MainApp.bus().post(new EventNSClientNewLog("DBREMOVE " + dbr.collection, "Sent " + dbr._id));
         } catch (JSONException e) {
             log.error("Unhandled exception", e);
+        }
+    }
+
+    @Subscribe
+    public void onStatusEvent(NSUpdateAck ack) {
+        if (ack.result) {
+            uploadQueue.removeID(ack.action, ack._id);
+            MainApp.bus().post(new EventNSClientNewLog("DBUPDATE/DBREMOVE", "Acked " + ack._id));
+        } else {
+            MainApp.bus().post(new EventNSClientNewLog("ERROR", "DBUPDATE/DBREMOVE Unknown response"));
         }
     }
 
@@ -784,7 +762,7 @@ public class NSClientService extends Service {
             message.put("collection", dbr.collection);
             message.put("data", new JSONObject(dbr.data));
             mSocket.emit("dbAdd", message, ack);
-            RxBus.INSTANCE.send(new EventNSClientNewLog("DBADD " + dbr.collection, "Sent " + dbr.nsClientID));
+            MainApp.bus().post(new EventNSClientNewLog("DBADD " + dbr.collection, "Sent " + dbr.nsClientID));
         } catch (JSONException e) {
             log.error("Unhandled exception", e);
         }
@@ -793,7 +771,17 @@ public class NSClientService extends Service {
     public void sendAlarmAck(AlarmAck alarmAck) {
         if (!isConnected || !hasWriteAuth) return;
         mSocket.emit("ack", alarmAck.level, alarmAck.group, alarmAck.silenceTime);
-        RxBus.INSTANCE.send(new EventNSClientNewLog("ALARMACK ", alarmAck.level + " " + alarmAck.group + " " + alarmAck.silenceTime));
+        MainApp.bus().post(new EventNSClientNewLog("ALARMACK ", alarmAck.level + " " + alarmAck.group + " " + alarmAck.silenceTime));
+    }
+
+    @Subscribe
+    public void onStatusEvent(NSAddAck ack) {
+        if (ack.nsClientID != null) {
+            uploadQueue.removeID(ack.json);
+            MainApp.bus().post(new EventNSClientNewLog("DBADD", "Acked " + ack.nsClientID));
+        } else {
+            MainApp.bus().post(new EventNSClientNewLog("ERROR", "DBADD Unknown response"));
+        }
     }
 
     public void resend(final String reason) {
@@ -814,7 +802,7 @@ public class NSClientService extends Service {
                 }
                 lastResendTime = System.currentTimeMillis();
 
-                RxBus.INSTANCE.send(new EventNSClientNewLog("QUEUE", "Resend started: " + reason));
+                MainApp.bus().post(new EventNSClientNewLog("QUEUE", "Resend started: " + reason));
 
                 CloseableIterator<DbRequest> iterator = null;
                 int maxcount = 30;
@@ -845,7 +833,7 @@ public class NSClientService extends Service {
                     log.error("Unhandled exception", e);
                 }
 
-                RxBus.INSTANCE.send(new EventNSClientNewLog("QUEUE", "Resend ended: " + reason));
+                MainApp.bus().post(new EventNSClientNewLog("QUEUE", "Resend ended: " + reason));
             }
         });
     }

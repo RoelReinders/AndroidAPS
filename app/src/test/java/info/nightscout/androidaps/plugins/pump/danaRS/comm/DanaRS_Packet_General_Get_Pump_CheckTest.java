@@ -27,6 +27,7 @@ public class DanaRS_Packet_General_Get_Pump_CheckTest {
         AAPSMocker.mockApplicationContext();
         AAPSMocker.mockSP();
         AAPSMocker.mockL();
+        AAPSMocker.mockBus();
         DanaRS_Packet_General_Get_Pump_Check packet = new DanaRS_Packet_General_Get_Pump_Check();
 
         // test params

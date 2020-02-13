@@ -1,4 +1,4 @@
-<androidx.wear.widget.BoxInsetLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.wear.widget.BoxInsetLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -10,7 +10,7 @@
         android:padding="5dp"
         app:boxedEdges="all">
 
-        <androidx.core.widget.NestedScrollView
+        <android.support.v4.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
@@ -34,7 +34,7 @@
                     android:textColor="@color/white" />
             </LinearLayout>
 
-        </androidx.core.widget.NestedScrollView>
+        </android.support.v4.widget.NestedScrollView>
 
     </FrameLayout>
-</androidx.wear.widget.BoxInsetLayout>
+</android.support.wear.widget.BoxInsetLayout>

@@ -1,6 +1,6 @@
 package info.nightscout.androidaps.data;
 
-import androidx.collection.LongSparseArray;
+import android.support.v4.util.LongSparseArray;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -11,13 +11,11 @@ import org.slf4j.LoggerFactory;
 import java.text.DecimalFormat;
 import java.util.TimeZone;
 
-import info.nightscout.androidaps.Config;
 import info.nightscout.androidaps.Constants;
 import info.nightscout.androidaps.MainApp;
 import info.nightscout.androidaps.R;
 import info.nightscout.androidaps.interfaces.PumpDescription;
 import info.nightscout.androidaps.interfaces.PumpInterface;
-import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.configBuilder.ConfigBuilderPlugin;
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification;
 import info.nightscout.androidaps.plugins.general.overview.notifications.Notification;
@@ -167,18 +165,17 @@ public class Profile {
                 final JSONObject o = array.getJSONObject(index);
                 long tas = 0;
                 try {
+                    tas = getShitfTimeSecs((int) o.getLong("timeAsSeconds"));
+                } catch (JSONException e) {
                     String time = o.getString("time");
                     tas = getShitfTimeSecs(DateUtil.toSeconds(time));
-                } catch (JSONException e) {
                     //log.debug(">>>>>>>>>>>> Used recalculated timeAsSecons: " + time + " " + tas);
-                    tas = getShitfTimeSecs((int) o.getLong("timeAsSeconds"));
                 }
                 double value = o.getDouble("value") * multiplier;
                 sparse.put(tas, value);
-            } catch (Exception e) {
+            } catch (JSONException e) {
                 log.error("Unhandled exception", e);
                 log.error(json.toString());
-                FabricPrivacy.logException(e);
             }
         }
 
@@ -229,10 +226,8 @@ public class Profile {
                 for (int index = 0; index < basal_v.size(); index++) {
                     long secondsFromMidnight = basal_v.keyAt(index);
                     if (notify && secondsFromMidnight % 3600 != 0) {
-                        if (Config.APS) {
-                            Notification notification = new Notification(Notification.BASAL_PROFILE_NOT_ALIGNED_TO_HOURS, String.format(MainApp.gs(R.string.basalprofilenotaligned), from), Notification.NORMAL);
-                            RxBus.INSTANCE.send(new EventNewNotification(notification));
-                        }
+                        Notification notification = new Notification(Notification.BASAL_PROFILE_NOT_ALIGNED_TO_HOURS, String.format(MainApp.gs(R.string.basalprofilenotaligned), from), Notification.NORMAL);
+                        MainApp.bus().post(new EventNewNotification(notification));
                     }
                 }
             }
@@ -263,11 +258,11 @@ public class Profile {
     }
 
     protected void sendBelowMinimumNotification(String from) {
-        RxBus.INSTANCE.send(new EventNewNotification(new Notification(Notification.MINIMAL_BASAL_VALUE_REPLACED, String.format(MainApp.gs(R.string.minimalbasalvaluereplaced), from), Notification.NORMAL)));
+        MainApp.bus().post(new EventNewNotification(new Notification(Notification.MINIMAL_BASAL_VALUE_REPLACED, String.format(MainApp.gs(R.string.minimalbasalvaluereplaced), from), Notification.NORMAL)));
     }
 
     protected void sendAboveMaximumNotification(String from) {
-        RxBus.INSTANCE.send(new EventNewNotification(new Notification(Notification.MAXIMUM_BASAL_VALUE_REPLACED, String.format(MainApp.gs(R.string.maximumbasalvaluereplaced), from), Notification.NORMAL)));
+        MainApp.bus().post(new EventNewNotification(new Notification(Notification.MAXIMUM_BASAL_VALUE_REPLACED, String.format(MainApp.gs(R.string.maximumbasalvaluereplaced), from), Notification.NORMAL)));
     }
 
     private void validate(LongSparseArray array) {
@@ -405,19 +400,6 @@ public class Profile {
         return getValuesList(isf_v, null, new DecimalFormat("0.0"), getUnits() + MainApp.gs(R.string.profile_per_unit));
     }
 
-    public ProfileValue[] getIsfs() {
-        if (isf_v == null)
-            isf_v = convertToSparseArray(ic);
-        ProfileValue[] ret = new ProfileValue[isf_v.size()];
-
-        for (Integer index = 0; index < isf_v.size(); index++) {
-            Integer tas = (int) isf_v.keyAt(index);
-            double value = isf_v.valueAt(index);
-            ret[index] = new ProfileValue(tas, value);
-        }
-        return ret;
-    }
-
     public double getIc() {
         return getIcTimeFromMidnight(secondsFromMidnight());
     }
@@ -438,19 +420,6 @@ public class Profile {
         return getValuesList(ic_v, null, new DecimalFormat("0.0"), MainApp.gs(R.string.profile_carbs_per_unit));
     }
 
-    public ProfileValue[] getIcs() {
-        if (ic_v == null)
-            ic_v = convertToSparseArray(ic);
-        ProfileValue[] ret = new ProfileValue[ic_v.size()];
-
-        for (Integer index = 0; index < ic_v.size(); index++) {
-            Integer tas = (int) ic_v.keyAt(index);
-            double value = ic_v.valueAt(index);
-            ret[index] = new ProfileValue(tas, value);
-        }
-        return ret;
-    }
-
     public double getBasal() {
         return getBasalTimeFromMidnight(secondsFromMidnight());
     }
@@ -469,11 +438,11 @@ public class Profile {
     public String getBasalList() {
         if (basal_v == null)
             basal_v = convertToSparseArray(basal);
-        return getValuesList(basal_v, null, new DecimalFormat("0.00"), MainApp.gs(R.string.profile_ins_units_per_hour));
+        return getValuesList(basal_v, null, new DecimalFormat("0.00"), MainApp.gs(R.string.profile_ins_units_per_hout));
     }
 
-    public class ProfileValue {
-        public ProfileValue(int timeAsSeconds, double value) {
+    public class BasalValue {
+        public BasalValue(int timeAsSeconds, double value) {
             this.timeAsSeconds = timeAsSeconds;
             this.value = value;
         }
@@ -482,15 +451,15 @@ public class Profile {
         public double value;
     }
 
-    public synchronized ProfileValue[] getBasalValues() {
+    public synchronized BasalValue[] getBasalValues() {
         if (basal_v == null)
             basal_v = convertToSparseArray(basal);
-        ProfileValue[] ret = new ProfileValue[basal_v.size()];
+        BasalValue[] ret = new BasalValue[basal_v.size()];
 
         for (Integer index = 0; index < basal_v.size(); index++) {
             Integer tas = (int) basal_v.keyAt(index);
             double value = basal_v.valueAt(index);
-            ret[index] = new ProfileValue(tas, value);
+            ret[index] = new BasalValue(tas, value);
         }
         return ret;
     }
@@ -529,49 +498,6 @@ public class Profile {
         if (targetHigh_v == null)
             targetHigh_v = convertToSparseArray(targetHigh);
         return getValueToTime(targetHigh_v, timeAsSeconds);
-    }
-
-    public class TargetValue {
-        public TargetValue(int timeAsSeconds, double low, double high) {
-            this.timeAsSeconds = timeAsSeconds;
-            this.low = low;
-            this.high = high;
-        }
-
-        public int timeAsSeconds;
-        public double low;
-        public double high;
-    }
-
-    public TargetValue[] getTargets() {
-        if (targetLow_v == null)
-            targetLow_v = convertToSparseArray(targetLow);
-        if (targetHigh_v == null)
-            targetHigh_v = convertToSparseArray(targetHigh);
-        TargetValue[] ret = new TargetValue[targetLow_v.size()];
-
-        for (Integer index = 0; index < targetLow_v.size(); index++) {
-            Integer tas = (int) targetLow_v.keyAt(index);
-            double low = targetLow_v.valueAt(index);
-            double high = targetHigh_v.valueAt(index);
-            ret[index] = new TargetValue(tas, low, high);
-        }
-        return ret;
-    }
-
-    public ProfileValue[] getSingleTargets() {
-        if (targetLow_v == null)
-            targetLow_v = convertToSparseArray(targetLow);
-        if (targetHigh_v == null)
-            targetHigh_v = convertToSparseArray(targetHigh);
-        ProfileValue[] ret = new ProfileValue[targetLow_v.size()];
-
-        for (Integer index = 0; index < targetLow_v.size(); index++) {
-            Integer tas = (int) targetLow_v.keyAt(index);
-            double target = (targetLow_v.valueAt(index) + targetHigh_v.valueAt(index)) / 2;
-            ret[index] = new ProfileValue(tas, target);
-        }
-        return ret;
     }
 
     public String getTargetList() {

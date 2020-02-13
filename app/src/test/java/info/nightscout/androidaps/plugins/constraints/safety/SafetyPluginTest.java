@@ -2,7 +2,8 @@ package info.nightscout.androidaps.plugins.constraints.safety;
 
 import android.content.Context;
 
-import org.junit.Assert;
+import junit.framework.Assert;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,11 +33,11 @@ import static org.mockito.Mockito.when;
 @PrepareForTest({MainApp.class, ConfigBuilderPlugin.class, SP.class, Context.class})
 public class SafetyPluginTest {
 
-    private VirtualPumpPlugin pump = new VirtualPumpPlugin();
-    private SafetyPlugin safetyPlugin;
+    VirtualPumpPlugin pump = new VirtualPumpPlugin();
+    SafetyPlugin safetyPlugin;
 
     @Test
-    public void pumpDescriptionShouldLimitLoopInvocation() {
+    public void pumpDescriptionShouldLimitLoopInvokation() throws Exception {
         pump.getPumpDescription().isTempBasalCapable = false;
 
         Constraint<Boolean> c = new Constraint<>(true);
@@ -52,7 +53,7 @@ public class SafetyPluginTest {
 
         Constraint<Boolean> c = new Constraint<>(true);
         c = safetyPlugin.isClosedLoopAllowed(c);
-        Assert.assertTrue(c.getReasons().contains("Running dev version. Closed loop is disabled."));
+        Assert.assertEquals(true, c.getReasons().contains("Running dev version. Closed loop is disabled."));
         Assert.assertEquals(Boolean.FALSE, c.value());
     }
 
@@ -62,34 +63,34 @@ public class SafetyPluginTest {
 
         Constraint<Boolean> c = new Constraint<>(true);
         c = safetyPlugin.isClosedLoopAllowed(c);
-        Assert.assertTrue(c.getReasons().contains("Closed loop mode disabled in preferences"));
+        Assert.assertEquals(true, c.getReasons().contains("Closed loop mode disabled in preferences"));
         Assert.assertEquals(Boolean.FALSE, c.value());
     }
 
     @Test
-    public void notEnabledSMBInPreferencesDisablesSMB() {
+    public void notEnabledSMBInPreferencesDisablesSMB() throws Exception {
         when(SP.getBoolean(R.string.key_use_smb, false)).thenReturn(false);
         when(MainApp.getConstraintChecker().isClosedLoopAllowed()).thenReturn(new Constraint<>(true));
 
         Constraint<Boolean> c = new Constraint<>(true);
         c = safetyPlugin.isSMBModeEnabled(c);
-        Assert.assertTrue(c.getReasons().contains("SMB disabled in preferences"));
+        Assert.assertEquals(true, c.getReasons().contains("SMB disabled in preferences"));
         Assert.assertEquals(Boolean.FALSE, c.value());
     }
 
     @Test
-    public void openLoopPreventsSMB() {
+    public void openLoopPreventsSMB() throws Exception {
         when(SP.getBoolean(R.string.key_use_smb, false)).thenReturn(true);
         when(MainApp.getConstraintChecker().isClosedLoopAllowed()).thenReturn(new Constraint<>(false));
 
         Constraint<Boolean> c = new Constraint<>(true);
         c = safetyPlugin.isSMBModeEnabled(c);
-        Assert.assertTrue(c.getReasons().contains("SMB not allowed in open loop mode"));
+        Assert.assertEquals(true, c.getReasons().contains("SMB not allowed in open loop mode"));
         Assert.assertEquals(Boolean.FALSE, c.value());
     }
 
     @Test
-    public void bgSourceShouldPreventSMBAlways() {
+    public void bgsourceShouldPreventSMBAlways() throws Exception {
         when(ConfigBuilderPlugin.getPlugin().getActiveBgSource()).thenReturn(SourceGlimpPlugin.getPlugin());
 
         Constraint<Boolean> c = new Constraint<>(true);
@@ -99,7 +100,7 @@ public class SafetyPluginTest {
     }
 
     @Test
-    public void basalRateShouldBeLimited() {
+    public void basalRateShouldBeLimited() throws Exception {
         when(SP.getDouble(R.string.key_openapsma_max_basal, 1d)).thenReturn(1d);
         when(SP.getDouble(R.string.key_openapsama_current_basal_safety_multiplier, 4d)).thenReturn(4d);
         when(SP.getDouble(R.string.key_openapsama_max_daily_safety_multiplier, 3d)).thenReturn(3d);
@@ -107,7 +108,7 @@ public class SafetyPluginTest {
 
         Constraint<Double> c = new Constraint<>(Constants.REALLYHIGHBASALRATE);
         safetyPlugin.applyBasalConstraints(c, AAPSMocker.getValidProfile());
-        Assert.assertEquals(1d, c.value(), 0.01d);
+        Assert.assertEquals(1d, c.value());
         Assert.assertEquals("Safety: Limiting basal rate to 1.00 U/h because of max value in preferences\n" +
                 "Safety: Limiting basal rate to 4.00 U/h because of max basal multiplier\n" +
                 "Safety: Limiting basal rate to 3.00 U/h because of max daily basal multiplier\n" +
@@ -117,18 +118,17 @@ public class SafetyPluginTest {
     }
 
     @Test
-    public void doNotAllowNegativeBasalRate() {
+    public void doNotAllowNegativeBasalRate() throws Exception {
         when(SP.getString(R.string.key_age, "")).thenReturn("child");
 
         Constraint<Double> d = new Constraint<>(-0.5d);
         safetyPlugin.applyBasalConstraints(d, AAPSMocker.getValidProfile());
-        Assert.assertEquals(0d, d.value(), 0.01d);
-        Assert.assertEquals("Safety: Limiting basal rate to 0.00 U/h because of it must be positive value\n" +
-                "Safety: Increasing max basal value because setting is lower than your max basal in profile", d.getReasons());
+        Assert.assertEquals(0d, d.value());
+        Assert.assertEquals("Safety: Limiting basal rate to 0.00 U/h because of it must be positive value", d.getReasons());
     }
 
     @Test
-    public void percentBasalRateShouldBeLimited() {
+    public void percentBasalRateShouldBeLimited() throws Exception {
         // No limit by default
         when(SP.getDouble(R.string.key_openapsma_max_basal, 1d)).thenReturn(1d);
         when(SP.getDouble(R.string.key_openapsama_current_basal_safety_multiplier, 4d)).thenReturn(4d);
@@ -149,7 +149,7 @@ public class SafetyPluginTest {
     }
 
     @Test
-    public void doNotAllowNegativePercentBasalRate() {
+    public void doNotAllowNegativePercentBasalRate() throws Exception {
         when(SP.getString(R.string.key_age, "")).thenReturn("child");
 
         Constraint<Integer> i = new Constraint<>(-22);
@@ -157,38 +157,37 @@ public class SafetyPluginTest {
         Assert.assertEquals((Integer) 0, i.value());
         Assert.assertEquals("Safety: Percent rate -22% recalculated to -0.22 U/h with current basal 1.00 U/h\n" +
                 "Safety: Limiting basal rate to 0.00 U/h because of it must be positive value\n" +
-                "Safety: Increasing max basal value because setting is lower than your max basal in profile\n" +
                 "Safety: Limiting percent rate to 0% because of pump limit", i.getReasons());
         Assert.assertEquals("Safety: Limiting percent rate to 0% because of pump limit", i.getMostLimitedReasons());
     }
 
     @Test
-    public void bolusAmountShouldBeLimited() {
+    public void bolusAmountShouldBeLimited() throws Exception {
         when(SP.getDouble(R.string.key_treatmentssafety_maxbolus, 3d)).thenReturn(3d);
         when(SP.getString(R.string.key_age, "")).thenReturn("child");
 
         Constraint<Double> d = new Constraint<>(Constants.REALLYHIGHBOLUS);
         d = safetyPlugin.applyBolusConstraints(d);
-        Assert.assertEquals(3d, d.value(), 0.01d);
+        Assert.assertEquals(3d, d.value());
         Assert.assertEquals("Safety: Limiting bolus to 3.0 U because of max value in preferences\n" +
                 "Safety: Limiting bolus to 5.0 U because of hard limit", d.getReasons());
         Assert.assertEquals("Safety: Limiting bolus to 3.0 U because of max value in preferences", d.getMostLimitedReasons());
     }
 
     @Test
-    public void doNotAllowNegativeBolusAmount() {
+    public void doNotAllowNegativeBolusAmount() throws Exception {
         when(SP.getDouble(R.string.key_treatmentssafety_maxbolus, 3d)).thenReturn(3d);
         when(SP.getString(R.string.key_age, "")).thenReturn("child");
 
         Constraint<Double> d = new Constraint<>(-22d);
         d = safetyPlugin.applyBolusConstraints(d);
-        Assert.assertEquals(0d, d.value(), 0.01d);
+        Assert.assertEquals(0d, d.value());
         Assert.assertEquals("Safety: Limiting bolus to 0.0 U because of it must be positive value", d.getReasons());
         Assert.assertEquals("Safety: Limiting bolus to 0.0 U because of it must be positive value", d.getMostLimitedReasons());
     }
 
     @Test
-    public void carbsAmountShouldBeLimited() {
+    public void carbsAmountShouldBeLimited() throws Exception {
         // No limit by default
         when(SP.getInt(R.string.key_treatmentssafety_maxcarbs, 48)).thenReturn(48);
 
@@ -205,7 +204,7 @@ public class SafetyPluginTest {
     }
 
     @Test
-    public void iobShouldBeLimited() {
+    public void iobShouldBeLimited() throws Exception {
         when(SP.getDouble(R.string.key_openapsma_max_iob, 1.5d)).thenReturn(1.5d);
         when(SP.getString(R.string.key_age, "")).thenReturn("teenage");
         OpenAPSMAPlugin.getPlugin().setPluginEnabled(PluginType.APS, true);
@@ -215,7 +214,7 @@ public class SafetyPluginTest {
         // Apply all limits
         Constraint<Double> d = new Constraint<>(Constants.REALLYHIGHIOB);
         d = safetyPlugin.applyMaxIOBConstraints(d);
-        Assert.assertEquals(1.5d, d.value(), 0.01d);
+        Assert.assertEquals(1.5d, d.value());
         Assert.assertEquals("Safety: Limiting IOB to 1.5 U because of max value in preferences\n" +
                 "Safety: Limiting IOB to 7.0 U because of hard limit\n" +
                 "Safety: Limiting IOB to 7.0 U because of hard limit", d.getReasons());
@@ -229,6 +228,7 @@ public class SafetyPluginTest {
         AAPSMocker.mockConstraintsChecker();
         AAPSMocker.mockSP();
         AAPSMocker.mockStrings();
+        AAPSMocker.mockBus();
 
 
         when(ConfigBuilderPlugin.getPlugin().getActivePump()).thenReturn(pump);

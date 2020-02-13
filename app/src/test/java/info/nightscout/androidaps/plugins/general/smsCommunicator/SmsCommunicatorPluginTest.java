@@ -57,7 +57,7 @@ import static org.powermock.api.mockito.PowerMockito.when;
         L.class, SP.class, MainApp.class, DateUtil.class, ProfileFunctions.class,
         TreatmentsPlugin.class, SmsManager.class, IobCobCalculatorPlugin.class,
         CommandQueue.class, ConfigBuilderPlugin.class, NSUpload.class, ProfileInterface.class,
-        SimpleProfilePlugin.class, XdripCalibrations.class, VirtualPumpPlugin.class, LoopPlugin.class
+        SimpleProfilePlugin.class, XdripCalibrations.class, VirtualPumpPlugin.class
 })
 
 public class SmsCommunicatorPluginTest {
@@ -718,6 +718,7 @@ public class SmsCommunicatorPluginTest {
         AAPSMocker.mockSP();
         AAPSMocker.mockL();
         AAPSMocker.mockStrings();
+        AAPSMocker.mockBus();
         AAPSMocker.mockProfileFunctions();
         AAPSMocker.mockTreatmentPlugin();
         AAPSMocker.mockTreatmentService();
@@ -744,9 +745,8 @@ public class SmsCommunicatorPluginTest {
         smsCommunicatorPlugin = SmsCommunicatorPlugin.getPlugin();
         smsCommunicatorPlugin.setPluginEnabled(PluginType.GENERAL, true);
 
-        mockStatic(LoopPlugin.class);
         loopPlugin = mock(LoopPlugin.class);
-        when(LoopPlugin.getPlugin()).thenReturn(loopPlugin);
+        when(MainApp.getSpecificPlugin(LoopPlugin.class)).thenReturn(loopPlugin);
 
         Mockito.doAnswer(invocation -> {
             Callback callback = invocation.getArgument(1);

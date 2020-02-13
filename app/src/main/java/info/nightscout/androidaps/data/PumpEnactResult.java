@@ -45,11 +45,6 @@ public class PumpEnactResult {
         return this;
     }
 
-    public PumpEnactResult comment(int comment) {
-        this.comment = MainApp.gs(comment);
-        return this;
-    }
-
     public PumpEnactResult duration(int duration) {
         this.duration = duration;
         return this;

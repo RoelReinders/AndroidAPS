@@ -15,7 +15,6 @@ import info.nightscout.androidaps.interfaces.PluginType;
 import info.nightscout.androidaps.interfaces.PumpInterface;
 import info.nightscout.androidaps.logging.L;
 import info.nightscout.androidaps.plugins.aps.loop.LoopPlugin;
-import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.configBuilder.ConfigBuilderPlugin;
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification;
 import info.nightscout.androidaps.plugins.general.overview.notifications.Notification;
@@ -90,6 +89,6 @@ public class DstHelperPlugin extends PluginBase implements ConstraintsInterface 
 
     private void warnUser(int id, String warningText) {
         Notification notification = new Notification(id, warningText, Notification.LOW);
-        RxBus.INSTANCE.send(new EventNewNotification(notification));
+        MainApp.bus().post(new EventNewNotification(notification));
     }
 }

@@ -28,6 +28,7 @@ public class MsgHistoryEvents_v2Test {
         AAPSMocker.mockApplicationContext();
         AAPSMocker.mockSP();
         AAPSMocker.mockL();
+        AAPSMocker.mockBus();
         AAPSMocker.mockDatabaseHelper();
         AAPSMocker.mockTreatmentPlugin();
         AAPSMocker.mockTreatmentService();

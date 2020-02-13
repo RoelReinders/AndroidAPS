@@ -1,6 +1,6 @@
 package info.nightscout.androidaps.plugins.iob.iobCobCalculator;
 
-import androidx.annotation.Nullable;
+import android.support.annotation.Nullable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

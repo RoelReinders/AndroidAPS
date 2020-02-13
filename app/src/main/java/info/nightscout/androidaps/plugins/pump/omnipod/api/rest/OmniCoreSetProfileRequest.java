@@ -4,9 +4,6 @@ import com.google.gson.JsonArray;
 
 import java.math.BigDecimal;
 
-import info.nightscout.androidaps.MainApp;
-import info.nightscout.androidaps.R;
-
 public class OmniCoreSetProfileRequest extends OmniCoreRequest {
     public OmniCoreSetProfileRequest(BigDecimal[] schedule, int utcOffsetMinutes){
         super();
@@ -18,11 +15,6 @@ public class OmniCoreSetProfileRequest extends OmniCoreRequest {
             scheduleArray.add(schedule[i]);
 
         joRequest.add("BasalSchedule", scheduleArray);
-    }
-
-    @Override
-    public String getRequestDetails()  {
-        return MainApp.gs(R.string.omnipod_command_setprofile);
     }
 
 }
