@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:isScrollContainer="true"
+    android:orientation="vertical"
+    tools:context=".plugins.pump.omnipod.OmnicoreCommandFragment">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+ <!--   <View
+        android:layout_width="fill_parent"
+        android:layout_height="2dip"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginBottom="5dp"
+        android:background="@color/listdelimiter" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="end"
+        android:paddingRight="5dp"
+        android:text="@string/omnicore_tab_commands_header"
+        android:textAlignment="center"
+        android:textSize="16sp"
+        android:textStyle="bold" /> -->
+
+
+    <View
+        android:layout_width="fill_parent"
+        android:layout_height="2dip"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginBottom="5dp"
+        android:background="@color/listdelimiter"
+        android:visibility="gone" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:paddingRight="5dp"
+        android:text="@string/omnicore_tab_recent_commands"
+        android:textAlignment="center"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <View
+        android:layout_width="fill_parent"
+        android:layout_height="2dip"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginBottom="5dp"
+        android:background="@color/listdelimiter" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:paddingRight="5dp"
+            android:text="@string/omnicore_tab_last_command"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="5dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0"
+            android:gravity="center_horizontal"
+            android:paddingStart="2dp"
+            android:paddingEnd="2dp"
+            android:text=":"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/omnicorestatus_lastcommand"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:gravity="start"
+            android:paddingLeft="5dp"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+
+    <View
+        android:layout_width="fill_parent"
+        android:layout_height="2dip"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginBottom="5dp"
+        android:background="@color/listdelimiter" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:paddingRight="5dp"
+            android:text="@string/omnicore_tab_last_result"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="5dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0"
+            android:gravity="center_horizontal"
+            android:paddingStart="2dp"
+            android:paddingEnd="2dp"
+            android:text=":"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/omnicorestatus_lastresult"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:gravity="start"
+            android:paddingLeft="5dp"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="fill_parent"
+        android:layout_height="2dip"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginBottom="5dp"
+        android:background="@color/listdelimiter" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:paddingRight="5dp"
+            android:text="@string/omnicore_tab_last_successful_command"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="5dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0"
+            android:gravity="center_horizontal"
+            android:paddingStart="2dp"
+            android:paddingEnd="2dp"
+            android:text=":"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/omnicorestatus_lastsuccess_command"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:gravity="start"
+            android:paddingLeft="5dp"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+    <!-- Command History -->
+    <View
+        android:layout_width="fill_parent"
+        android:layout_height="2dip"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginBottom="5dp"
+        android:background="@color/listdelimiter" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:paddingRight="5dp"
+            android:text="@string/omnicore_tab_command_history"
+            android:textAlignment="center"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/omnicorestatus_history_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+
+
+</LinearLayout>
+</ScrollView>

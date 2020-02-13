@@ -1,13 +1,16 @@
 package info.nightscout.androidaps.utils;
 
-import android.support.v4.util.LongSparseArray;
+import androidx.collection.LongSparseArray;
 
 import org.joda.time.DateTime;
+import org.joda.time.LocalDate;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
 import java.text.DateFormat;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -37,10 +40,8 @@ public class DateUtil {
      *
      * @param isoDateString the iso date string
      * @return the date
-     * @throws Exception the exception
      */
-    public static Date fromISODateString(String isoDateString)
-            throws Exception {
+    public static Date fromISODateString(String isoDateString) {
 
         DateTimeFormatter parser = ISODateTimeFormat.dateTimeParser();
         DateTime dateTime = DateTime.parse(isoDateString, parser);
@@ -71,6 +72,18 @@ public class DateUtil {
         return toISOString(new Date(date), FORMAT_DATE_ISO_OUT, TimeZone.getTimeZone("UTC"));
     }
 
+    public static String toISOAsUTC(final long timestamp) {
+        final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'0000Z'", Locale.US);
+        format.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return format.format(timestamp);
+    }
+
+    public static String toISONoZone(final long timestamp) {
+        final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
+        format.setTimeZone(TimeZone.getDefault());
+        return format.format(timestamp);
+    }
+
     public static Date toDate(Integer seconds) {
         Calendar calendar = new GregorianCalendar();
         calendar.set(Calendar.MONTH, 0); // Set january to be sure we miss DST changing
@@ -97,20 +110,48 @@ public class DateUtil {
 
     public static String dateString(Date date) {
         DateFormat df = DateFormat.getDateInstance(DateFormat.SHORT);
+//        DateFormat df = DateFormat.getDateInstance(DateFormat.MEDIUM,Locale.getDefault());
         return df.format(date);
     }
 
     public static String dateString(long mills) {
         DateFormat df = DateFormat.getDateInstance(DateFormat.SHORT);
+//        DateFormat df = DateFormat.getDateInstance(DateFormat.MEDIUM,Locale.getDefault());
         return df.format(mills);
     }
 
+    public static String dateStringRelative(Date date) {
+        LocalDate lDate = LocalDate.fromDateFields(date);
+        LocalDate nowDate = LocalDate.now();
+
+        if (lDate.dayOfYear().equals(nowDate.dayOfYear())) {
+            return MainApp.gs(R.string.today);
+        }
+        else if (lDate.dayOfYear().equals(nowDate.minusDays(1).dayOfYear())) {
+            return MainApp.gs(R.string.yesterday);
+        }
+        else if (lDate.dayOfYear().equals(nowDate.plusDays(1).dayOfYear())) {
+            return MainApp.gs(R.string.tomorrow);
+        }
+        else {
+            return dateString(date);
+        }
+    }
+
     public static String timeString(Date date) {
-        return new DateTime(date).toString(DateTimeFormat.shortTime());
+        String format = "hh:mma";
+        if (android.text.format.DateFormat.is24HourFormat(MainApp.instance())) {
+            format = "HH:mm";
+        }
+        return new DateTime(date).toString(DateTimeFormat.forPattern(format));
     }
 
     public static String timeString(long mills) {
-        return new DateTime(mills).toString(DateTimeFormat.shortTime());
+        String format = "hh:mma";
+        if (android.text.format.DateFormat.is24HourFormat(MainApp.instance())) {
+            format = "HH:mm";
+        }
+        return new DateTime(mills).toString(DateTimeFormat.forPattern(format));
     }
 
     public static String timeFullString(long mills) {
@@ -121,11 +162,16 @@ public class DateUtil {
         return dateString(date) + " " + timeString(date);
     }
 
+    public static String dateAndTimeRelativeString(long mills) {
+        return dateStringRelative(new Date(mills)) + " " + timeString(mills);
+    }
+
     public static String dateAndTimeRangeString(long start, long end) {
         return dateAndTimeString(start) + " - " + timeString(end);
     }
 
     public static String dateAndTimeString(long mills) {
+        if (mills == 0) return "";
         return dateString(mills) + " " + timeString(mills);
     }
 
@@ -187,4 +233,84 @@ public class DateUtil {
         long diff = Math.abs(date - now());
         return diff < T.mins(2).msecs();
     }
+
+    public static GregorianCalendar gregorianCalendar() {
+        return new GregorianCalendar();
+    }
+
+    public static long getTimeZoneOffsetMs() {
+        return new GregorianCalendar().getTimeZone().getRawOffset();
+    }
+
+    public static int getTimeZoneOffsetMinutes(final long timestamp) {
+        return TimeZone.getDefault().getOffset(timestamp) / 60000;
+    }
+
+    public static String niceTimeScalar(long t) {
+        String unit = MainApp.gs(R.string.unit_second);
+        t = t / 1000;
+        if (t != 1) unit = MainApp.gs(R.string.unit_seconds);
+        if (t > 59) {
+            unit = MainApp.gs(R.string.unit_minute);
+            t = t / 60;
+            if (t != 1) unit = MainApp.gs(R.string.unit_minutes);
+            if (t > 59) {
+                unit = MainApp.gs(R.string.unit_hour);
+                t = t / 60;
+                if (t != 1) unit = MainApp.gs(R.string.unit_hours);
+                if (t > 24) {
+                    unit = MainApp.gs(R.string.unit_day) + "\"";
+                    t = t / 24;
+                    if (t != 1) unit = MainApp.gs(R.string.unit_days) + "\"";
+                    if (t > 28) {
+                        unit = MainApp.gs(R.string.unit_week) + "\"";
+                        t = t / 7;
+                        if (t != 1) unit = MainApp.gs(R.string.unit_weeks) + "\"";
+                    }
+                }
+            }
+        }
+        //if (t != 1) unit = unit + "s"; //implemented plurality in every step, because in other languages plurality of time is not every time adding the same character
+        return qs((double) t, 0) + " " + unit;
+    }
+
+    // singletons to avoid repeated allocation
+    private static DecimalFormatSymbols dfs;
+    private static DecimalFormat df;
+    public static String qs(double x, int digits) {
+
+        if (digits == -1) {
+            digits = 0;
+            if (((int) x != x)) {
+                digits++;
+                if ((((int) x * 10) / 10 != x)) {
+                    digits++;
+                    if ((((int) x * 100) / 100 != x)) digits++;
+                }
+            }
+        }
+
+        if (dfs == null) {
+            final DecimalFormatSymbols local_dfs = new DecimalFormatSymbols();
+            local_dfs.setDecimalSeparator('.');
+            dfs = local_dfs; // avoid race condition
+        }
+
+        final DecimalFormat this_df;
+        // use singleton if on ui thread otherwise allocate new as DecimalFormat is not thread safe
+        if (Thread.currentThread().getId() == 1) {
+            if (df == null) {
+                final DecimalFormat local_df = new DecimalFormat("#", dfs);
+                local_df.setMinimumIntegerDigits(1);
+                df = local_df; // avoid race condition
+            }
+            this_df = df;
+        } else {
+            this_df = new DecimalFormat("#", dfs);
+        }
+
+        this_df.setMaximumFractionDigits(digits);
+        return this_df.format(x);
+    }
+
 }

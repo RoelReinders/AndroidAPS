@@ -19,10 +19,13 @@ import info.nightscout.androidaps.interfaces.PluginType;
 import info.nightscout.androidaps.interfaces.PumpDescription;
 import info.nightscout.androidaps.interfaces.PumpInterface;
 import info.nightscout.androidaps.logging.L;
+import info.nightscout.androidaps.plugins.common.ManufacturerType;
 import info.nightscout.androidaps.plugins.general.actions.defs.CustomAction;
 import info.nightscout.androidaps.plugins.general.actions.defs.CustomActionType;
+import info.nightscout.androidaps.plugins.pump.common.defs.PumpType;
 import info.nightscout.androidaps.plugins.treatments.TreatmentsPlugin;
 import info.nightscout.androidaps.utils.DateUtil;
+import info.nightscout.androidaps.utils.InstanceId;
 
 
 /**
@@ -239,8 +242,18 @@ public class MDIPlugin extends PluginBase implements PumpInterface {
     }
 
     @Override
-    public String deviceID() {
-        return "MDI";
+    public ManufacturerType manufacturer() {
+        return ManufacturerType.AndroidAPS;
+    }
+
+    @Override
+    public PumpType model() {
+        return PumpType.MDI;
+    }
+
+    @Override
+    public String serialNumber() {
+        return InstanceId.INSTANCE.instanceId();
     }
 
     @Override
@@ -250,7 +263,7 @@ public class MDIPlugin extends PluginBase implements PumpInterface {
 
     @Override
     public String shortStatus(boolean veryShort) {
-        return deviceID();
+        return model().getModel();
     }
 
     @Override
@@ -267,5 +280,11 @@ public class MDIPlugin extends PluginBase implements PumpInterface {
     public boolean canHandleDST() {
         return true;
     }
+
+    @Override
+    public void timeDateOrTimeZoneChanged() {
+
+    }
+
 
 }

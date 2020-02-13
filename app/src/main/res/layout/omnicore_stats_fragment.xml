@@ -1,0 +1,655 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".plugins.pump.omnipod.OmnicoreStatsFragment">
+-->
+    <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:isScrollContainer="true"
+    android:orientation="vertical"
+    tools:context=".plugins.pump.omnipod.OmnicoreStatsFragment">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="2dip"
+            android:layout_marginLeft="20dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginRight="20dp"
+            android:layout_marginBottom="5dp"
+            android:background="@color/listdelimiter" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:paddingRight="5dp"
+            android:text="@string/omnicore_tab_stats"
+            android:textAlignment="center"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+
+        <Button
+            android:id="@+id/omnicore_resetstatsbutton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/omnicore_tab_reset_stats_button" />
+
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="2dip"
+            android:layout_marginLeft="20dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginRight="20dp"
+            android:layout_marginBottom="5dp"
+            android:background="@color/listdelimiter" />
+
+        <LinearLayout
+            android:id="@+id/omnicore_stats_start"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/omnicore_stats_start_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:paddingRight="5dp"
+                android:text="LABEL1"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="5dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center_horizontal"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text=":"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/omnicore_stats_start_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:paddingLeft="5dp"
+                android:text="DATA"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/omnicore_stats_end"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/omnicore_stats_end_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:paddingRight="5dp"
+                android:text="LABEL2"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="5dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center_horizontal"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text=":"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/omnicore_stats_end_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:paddingLeft="5dp"
+                android:text="DATA"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/omnicore_stats_pods"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/omnicore_stats_pods_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:paddingRight="5dp"
+                android:text="LABEL3"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="5dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center_horizontal"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text=":"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/omnicore_stats_pods_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:paddingLeft="5dp"
+                android:text="DATA"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/omnicore_stats_commands"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/omnicore_stats_commands_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:paddingRight="5dp"
+                android:text="LABEL4"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="5dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center_horizontal"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text=":"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/omnicore_stats_commands_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:paddingLeft="5dp"
+                android:text="DATA"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/omnicore_stats_failures"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/omnicore_stats_failures_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:paddingRight="5dp"
+                android:text="LABEL5"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="5dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center_horizontal"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text=":"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/omnicore_stats_failures_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:paddingLeft="5dp"
+                android:text="DATA"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/omnicore_stats_totaltime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/omnicore_stats_totaltime_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:paddingRight="5dp"
+                android:text="LABEL6"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="5dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center_horizontal"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text=":"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/omnicore_stats_totaltime_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:paddingLeft="5dp"
+                android:text="DATA"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/omnicore_stats_tbr"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/omnicore_stats_tbr_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:paddingRight="5dp"
+                android:text="LABEL7"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="5dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center_horizontal"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text=":"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/omnicore_stats_tbr_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:paddingLeft="5dp"
+                android:text="DATA"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/omnicore_stats_tbrfail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/omnicore_stats_tbrfail_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:paddingRight="5dp"
+                android:text="LABEL8"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="5dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center_horizontal"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text=":"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/omnicore_stats_tbrfail_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:paddingLeft="5dp"
+                android:text="DATA"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:id="@+id/omnicore_stats_tbrtime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/omnicore_stats_tbrtime_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:paddingRight="5dp"
+                android:text="LABEL9"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="5dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center_horizontal"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text=":"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/omnicore_stats_tbrtime_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:paddingLeft="5dp"
+                android:text="DATA"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:id="@+id/omnicore_stats_bolus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/omnicore_stats_bolus_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:paddingRight="5dp"
+                android:text="LABEL10"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="5dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center_horizontal"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text=":"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/omnicore_stats_bolus_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:paddingLeft="5dp"
+                android:text="DATA"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:id="@+id/omnicore_stats_bolussmb"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/omnicore_stats_bolussmb_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:paddingRight="5dp"
+                android:text="LABEL11"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="5dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center_horizontal"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text=":"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/omnicore_stats_bolussmb_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:paddingLeft="5dp"
+                android:text="DATA"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:id="@+id/omnicore_stats_bolusfail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/omnicore_stats_bolusfail_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:paddingRight="5dp"
+                android:text="LABEL12"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="5dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center_horizontal"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text=":"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/omnicore_stats_bolusfail_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:paddingLeft="5dp"
+                android:text="DATA"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:id="@+id/omnicore_stats_bolustime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/omnicore_stats_bolustime_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:paddingRight="5dp"
+                android:text="LABEL13"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="5dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center_horizontal"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text=":"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/omnicore_stats_bolustime_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:paddingLeft="5dp"
+                android:text="DATA"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:id="@+id/omnicore_stats_profile"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/omnicore_stats_profile_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:paddingRight="5dp"
+                android:text="LABEL14"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="5dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center_horizontal"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text=":"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/omnicore_stats_profile_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:paddingLeft="5dp"
+                android:text="DATA"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:id="@+id/omnicore_stats_profiletime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/omnicore_stats_profiletime_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:paddingRight="5dp"
+                android:text="LABEL15"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="5dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:gravity="center_horizontal"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
+                android:text=":"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/omnicore_stats_profiletime_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:paddingLeft="5dp"
+                android:text="DATA"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>
+<!--</LinearLayout>-->
